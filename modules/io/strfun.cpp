@@ -142,4 +142,12 @@ namespace qpp{
        }
    }
 
+  STRING_EX atomic_name_to_symbol(const STRING_EX & nm){
+    size_t pos = nm.find_first_of("_0123456789");
+    if (pos == STRING_EX::npos)
+      return nm;
+    else
+      return nm.substr(0,pos);
+  }
+  
 }

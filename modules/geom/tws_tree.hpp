@@ -23,6 +23,7 @@
 #include <geom/ray.hpp>
 #include <geom/primitive_intersections.hpp>
 #include <data/ptable.hpp>
+#include <io/strfun.hpp>
 
 #define TWS_TREE_DEBUG
 
@@ -158,36 +159,36 @@ namespace qpp{
 
   template<typename REAL, typename AINT>
   struct bonding_table_t {
-
-      std::unordered_map<
+    
+    std::unordered_map<
       qpp::sym_key<AINT>, bonding_table_record_t<REAL>, sym_key_hash<AINT> > m_dist;
-
-      std::map<AINT, REAL> m_max_dist;
-
-      template<typename CELL>
-      void init_default(geometry<REAL, CELL> *geom) {
-
-        for (AINT i = 0; i < geom->n_atom_types(); i++) {
-            REAL max_bond_rad = 0.0;
-            for (AINT  j = 0; j <  geom->n_atom_types(); j++) {
-                auto table_idx1  = ptable::number_by_symbol(geom->atom_of_type(i));
-                auto table_idx2  = ptable::number_by_symbol(geom->atom_of_type(j));
-                if (table_idx1 && table_idx2) {
-                    auto bond_rad_1 = ptable::cov_rad_by_number(*table_idx1);
-                    auto bond_rad_2 = ptable::cov_rad_by_number(*table_idx2);
-                    if (bond_rad_1 && bond_rad_2) {
-                        m_dist[sym_key<AINT>(i,j)].m_bonding_dist =
-                            *bond_rad_1 + *bond_rad_2;
-                        max_bond_rad = std::max(max_bond_rad, *bond_rad_1 + *bond_rad_2);
-                        m_dist[sym_key<AINT>(i,j)].m_enabled = true;
-                      } else m_dist[sym_key<AINT>(i,j)].m_enabled = false;
-                  }
-              }
-            m_max_dist[i] = max_bond_rad;
-          }
-
+    
+    std::map<AINT, REAL> m_max_dist;
+    
+    template<typename CELL>
+    void init_default(geometry<REAL, CELL> *geom) {
+      
+      for (AINT i = 0; i < geom->n_atom_types(); i++) {
+	REAL max_bond_rad = 0.0;
+	for (AINT  j = 0; j <  geom->n_atom_types(); j++) {
+	  auto table_idx1  = ptable::number_by_symbol(atomic_name_to_symbol(geom->atom_of_type(i)));
+	  auto table_idx2  = ptable::number_by_symbol(atomic_name_to_symbol(geom->atom_of_type(j)));
+	  if (table_idx1 && table_idx2) {
+	    auto bond_rad_1 = ptable::cov_rad_by_number(*table_idx1);
+	    auto bond_rad_2 = ptable::cov_rad_by_number(*table_idx2);
+	    if (bond_rad_1 && bond_rad_2) {
+	      m_dist[sym_key<AINT>(i,j)].m_bonding_dist =
+		*bond_rad_1 + *bond_rad_2;
+	      max_bond_rad = std::max(max_bond_rad, *bond_rad_1 + *bond_rad_2);
+	      m_dist[sym_key<AINT>(i,j)].m_enabled = true;
+	    } else m_dist[sym_key<AINT>(i,j)].m_enabled = false;
+	  }
+	}
+	m_max_dist[i] = max_bond_rad;
       }
-
+      
+    }
+    
       void update_dist_for_pair(const AINT i, const AINT j, const REAL new_dist) {
 
         auto it = m_dist.find(sym_key<AINT>(i,j));
@@ -602,7 +603,7 @@ namespace qpp{
                                                              xgeom_hide_field_id);
               }
             else for (auto &nc : cur_node->m_content) {
-                auto ap_idx = ptable::number_by_symbol(geom->atom(nc.m_atm));
+                auto ap_idx = ptable::number_by_symbol(atomic_name_to_symbol(geom->atom(nc.m_atm)));
 
                 //TODO: move magic aRadius
                 REAL atom_rad = 1.0f;

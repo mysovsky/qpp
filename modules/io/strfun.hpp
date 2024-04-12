@@ -235,6 +235,8 @@ namespace qpp {
     return false;
   }
 
+  STRING_EX atomic_name_to_symbol(const STRING_EX & nm);
+
 }
 
 #endif
