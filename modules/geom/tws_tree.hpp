@@ -624,8 +624,8 @@ namespace qpp{
                     ray_hit &&
                     adding_result_policy::can_add(test_pos, nc.m_idx, geom->DIM) &&
                     !atom_hidden &&
-                    (!hide_by_field ||
-                     !geom->template xfield<bool>(xgeom_hide_field_id, nc.m_atm) ||
+                    (!hide_by_field ||               
+		     !geom->template xfield<bool>(xgeom_hide_field_id, nc.m_atm) ||
                      !xgeom_hide_field_id)
                     )
                   res.push_back(tws_query_data_t<REAL, AINT>(nc.m_atm, nc.m_idx, ray_hit_dist));

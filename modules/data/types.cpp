@@ -76,4 +76,24 @@ namespace qpp{
   STRING_EX attributes<STRING_EX>::name      = "string";
   basic_types attributes<STRING_EX>::type = type_string;
 
+  std::vector<STRING_EX> type_data::type_name = {
+    "none",   // 0 
+    "double", // 1
+    "float",  // 2
+    "real",   // 3 = 1 + 2
+    "int",    // 4
+    "bool",   // 5
+    "string", // 6
+    "",       // 7
+    "",       // 8
+    "list(double)",// 9  = 8 + 1
+    "list(float)", // 10 = 8 + 2
+    "list(real)",  // 11 = 8 + 3
+    "list(int)",   // 12 = 8 + 4
+    "list(bool)",  // 13 = 8 + 5
+    "list(string)",// 14 = 8 + 6
+    "",            // 15
+    "qpp.geometry" // 16
+  };
+  
 };

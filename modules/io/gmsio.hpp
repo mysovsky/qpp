@@ -259,16 +259,18 @@ namespace qpp{
         << " cla2    1.8897  0.00  0.00  1.00  0.00" << std::endl
         << " cla3    0.00   1.8897 0.00  1.00  0.00" << std::endl;
 
+    geometry<REAL, CELL> *ggeom = (geometry<REAL, CELL>*)(&geom);
+    
     for (int i=0; i<geom.nat(); i++)
-      if (!geom.shadow(i)){
-          vector3<REAL> r = ang_to_bohr*geom.coord(i);
-          out <<
-                 fmt::format("{:5d} {:16.8f} {:16.8f} {16.8f}",
-                             i,r.x(),r.y(),r.z())<< std::endl;
-        }
+      if (!ggeom->shadow(i)){
+	vector3<REAL> r = ang_to_bohr*geom.coord(i);
+	out <<
+	  fmt::format("{:5d} {:16.8f} {:16.8f} {16.8f}",
+		      i,r.x(),r.y(),r.z())<< std::endl;
+      }
     out << " stop" << std::endl << " monopoles" << std::endl;
     for (int i=0; i<geom.nat(); i++)
-      if (!geom.shadow(i))
+      if (!ggeom->shadow(i))
         out << fmt::format("{:5d} {:16.8f}",i,geom.charge(i)) << std::endl;
     out << " stop" << std::endl << " $END" << std::endl;
   }

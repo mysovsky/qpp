@@ -118,8 +118,26 @@ namespace qpp {
 
   // --------------------------------------------------------
 
-  enum basic_types{type_int, type_real, type_double, type_float, type_bool, type_string};
+  // enum basic_types{type_int, type_real, type_double, type_float, type_bool, type_string};
+  enum basic_types{
+    type_none   = 0,
+    type_double = 1,
+    type_float  = 2,
+    type_real   = type_double | type_float,
+    type_int    = 4,
+    type_bool   = 5,
+    type_string = 6,
+    type_array  = 8,
+    type_qpp_geometry = 16
+  };
 
+  class type_data{
+  public:
+    
+    static std::vector<STRING_EX> type_name;
+    
+  };
+  
   // --------------------------------------------------------
 
   template <class T1, class T2>

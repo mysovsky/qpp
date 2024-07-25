@@ -21,6 +21,16 @@ namespace py = pybind11;
 #include <io/strfun.hpp>
 
 namespace qpp {
+  
+  class index;
+  
+  index atom_index(int at, const index & I);
+
+  // -------------------------------------------------------------
+
+  bool compare_atindex(const index & at1,
+                       const index & at2);
+
 
   /// \brief index is a general purpose complex index, having DIM integer components
   class index {
@@ -305,32 +315,34 @@ namespace qpp {
       index py_sub(const index &I2) const
       { return (*this)-I2; }
 
-      static void py_export( py::module m, const char * pyname){
+    static void py_export( py::module m, const char * pyname){
 
-        py::class_<index >(m, pyname)
-            .def(py::init<>())
-            .def(py::init<py::list&>())
-            .def(py::init<py::tuple&>())
-            .def(py::init<index const&>())
-            //TODO: last parameter is optional
-            .def(py::init<index const&, int, int >())
-            //.def(py::init<int>())
-            .def("__getitem__",&index::py_getitem)
-            .def("__setitem__",&index::py_setitem)
-            .def("sub",  &index::sub)
-            .def("sub",  &index::sub1)
-            //	.def(py::str(py::self))
-            //	.def(py::repr(py::self))
-      .def(py::self + py::self)
-      .def(py::self - py::self)
-      //.def("__add__", & index::py_add )
-      //.def("__sub__", & index::py_sub )
-            .def(py::self == py::self)
-            .def(py::self!= py::self)
-            .def("__str__", &index::print)
-            .def("__repr__", &index::print)
-            ;
-      }
+      py::class_<index >(m, pyname)
+	.def(py::init<>())
+	.def(py::init<py::list&>())
+	.def(py::init<py::tuple&>())
+	.def(py::init<index const&>())
+	//TODO: last parameter is optional
+	.def(py::init<index const&, int, int >())
+	//.def(py::init<int>())
+	.def("__getitem__",&index::py_getitem)
+	.def("__setitem__",&index::py_setitem)
+	.def("sub",  &index::sub)
+	.def("sub",  &index::sub1)
+	//	.def(py::str(py::self))
+	//	.def(py::repr(py::self))
+	.def(py::self + py::self)
+	.def(py::self - py::self)
+	//.def("__add__", & index::py_add )
+	//.def("__sub__", & index::py_sub )
+	.def(py::self == py::self)
+	.def(py::self!= py::self)
+	.def("__str__", &index::print)
+	.def("__repr__", &index::print)
+	.def_readonly("DIM", &index::DIM)
+	.def("__rand__", [](const index & self, int at)->index{ return atom_index(at,self);})
+	;
+    }
 
 #endif
 
@@ -361,13 +373,6 @@ namespace qpp {
       __s << "(0)";
     return __os << __s.str();
   }
-
-  index atom_index(int at, const index & I);
-
-  // -------------------------------------------------------------
-
-  bool compare_atindex(const index & at1,
-                       const index & at2);
 
   // ------------------- iterator class --------------------
   // Iterator allows you run through all (or some) atoms of this cell

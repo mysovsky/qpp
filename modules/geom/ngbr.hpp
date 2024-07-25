@@ -323,7 +323,7 @@ namespace qpp {
       bonding_table<REAL> *btbl;
 
       // Internal bonding distances table
-      REAL* _disttable;
+    REAL* _disttable{nullptr};
 
       // Number of atomic types
       int ntp;
@@ -334,7 +334,13 @@ namespace qpp {
       inline void resize_disttable(){
         //      if (_disttable != nullptr)
         //        delete []_disttable;
-        delete []_disttable;
+        // delete []_disttable;
+	if (_disttable != nullptr)
+	  delete []_disttable;
+	ntp = geom->n_types();
+	if (ntp < 1)
+	  IndexError("Number of atomic types is zero. Maybe, you should initialize typetable?");
+	_disttable = new REAL[ntp*ntp];
       }
 
       void build_disttable(){

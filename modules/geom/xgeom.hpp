@@ -50,6 +50,7 @@ namespace qpp {
       using geometry<REAL,CELL>::size;
       using geometry<REAL,CELL>::has_observers;
       using geometry<REAL,CELL>::observers;
+      using geometry<REAL,CELL>::shadow;
       //using geometry<DIM,REAL,CELL>::error;
 
       void init_xdefault() {
@@ -286,6 +287,14 @@ namespace qpp {
       template<class T>
       T & xfield(int i, int j) {
 
+	if (i<-1 || i>=nfields())
+	  throw std::invalid_argument("xgeometry::xfield - wrong field " + t2s(i) +
+				      " of type " + t2s(attributes<T>::type));
+	
+	if (i==-1)
+	  // xfield number -1 is shadow and used for selective visibility
+	  return convert<T&,bool&>::get(_shadow[j]);
+
         basic_types ft = field_type(i);
 
         if (ft == type_real)
@@ -321,6 +330,14 @@ namespace qpp {
 
       template<class T>
       inline T xfield(int i, int j) const {
+
+	if (i<-1 || i>=nfields())
+	  throw std::invalid_argument("xgeometry::xfield - wrong field " + t2s(i) +
+				      " of type " + t2s(attributes<T>::type));
+	
+	if (i==-1)
+	  // xfield number -1 is shadow and used for selective visibility
+	  return convert<T,bool>::get(_shadow[j]);
 
         basic_types ft = field_type(i);
 
