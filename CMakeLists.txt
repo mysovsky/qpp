@@ -102,10 +102,10 @@ endif()
 #end python stuff
 
 #Add all src and headers to qtcreator ide
-file(GLOB_RECURSE ide_headers "modules/*/*.hpp")
-file(GLOB_RECURSE ide_headersc "modules/*.hpp")
-file(GLOB_RECURSE ide_src "modules/*/*.cpp")
-file(GLOB_RECURSE ide_exm "examples/*/*.cpp")
+file(GLOB_RECURSE ide_headers "src/modules/*/*.hpp")
+file(GLOB_RECURSE ide_headersc "src/modules/*.hpp")
+file(GLOB_RECURSE ide_src "src/modules/*/*.cpp")
+file(GLOB_RECURSE ide_exm "src/examples/*/*.cpp")
 #file(GLOB_RECURSE ide_t1 "tests/*/*.*pp")
 #file(GLOB_RECURSE ide_t2 "tests/*.*pp")
 add_custom_target(ideheaders SOURCES ${ide_headers} ${ide_headersc}
@@ -113,9 +113,10 @@ add_custom_target(ideheaders SOURCES ${ide_headers} ${ide_headersc}
 #end ideheaders
 
 #Global includes
-include_directories(modules/)
+include_directories(src/modules/)
 
-add_subdirectory(modules)
+#add_subdirectory(modules)
+add_subdirectory(src)
 
 if(BUILD_EXAMPLES)
     message("-- Examples are enabled")
