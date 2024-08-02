@@ -201,7 +201,43 @@ namespace qpp{
   template<class REAL, bool BOUND>
   rotrans<REAL,BOUND>
   rotrans<REAL,BOUND>::unity(vector3<REAL>::Zero(), matrix3<REAL>::unity);
+  
+  template<class REAL, bool BOUND>
+  matrix4<REAL> rotrans4d(const rotrans<REAL,BOUND> & R)
+  {
+    matrix4<REAL> res = matrix4<REAL>::Identity();
+    res.block(0,0,3,3) = R.R;
+    res.block(0,3,3,1) = R.T;
+    return res;
+  }
+  
+  template <class REAL>
+  rotrans<REAL,true> rotrans_shift(const rotrans<REAL, true> & r, const index & I)
+  {
+    auto & cl = *r.cell;
+    return rotrans<REAL,true>(vector3<REAL>(r.T + cl(0)*I(0) + cl(1)*I(1) + cl(2)*I(2)), r.R, r.cell);
+  }
 
+  template <class REAL>
+  rotrans<REAL> rotrans2frac(const rotrans<REAL, true> & r){
+    const auto & cl = *r.cell;
+    matrix3<REAL> A = {cl(0),cl(1),cl(2)}, B;
+    B = A.transpose();
+    A = B;
+    B = A.inverse();
+    return rotrans<REAL>(B*r.T, B*r.R*A);
+  }
+
+  template <class REAL>
+  rotrans<REAL,true> rotrans2cart(const rotrans<REAL> & f, periodic_cell<REAL> & cl){
+    matrix3<REAL> A = {cl(0),cl(1),cl(2)}, B;
+    B = A.transpose();
+    A = B;
+    B = A.inverse();
+    return rotrans<REAL,true>(A*f.T, A*f.R*B, &cl);
+  }
+
+  
   //!\brief Inverse of rotrans R, P=R^(-1). Means R*P==1.
   //  template<class REAL, bool BOUND>
   //  rotrans<REAL,BOUND> invert(const rotrans<REAL,BOUND> & R){

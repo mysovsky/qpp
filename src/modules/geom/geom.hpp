@@ -141,8 +141,6 @@ The supercell concept generalization for the geometry class looks like:
       //! default value for tol_geom
       static REAL tol_geom_default;
 
-      int DIM;
-
       //! cell for periodic boundary conditions and on-the-fly transformations
       CELL cell;
 
@@ -158,7 +156,11 @@ The supercell concept generalization for the geometry class looks like:
       virtual bool is_xgeometry () const
       {return false;}
 
-      //! Number of atoms
+      //! \brief Dimension of periodicity
+      inline int DIM() const
+      {return cell.DIM;}
+
+      //! \brief Number of atoms
       inline int size () const
       {return _crd.size();}
 
@@ -185,7 +187,7 @@ The supercell concept generalization for the geometry class looks like:
         vector3<REAL> r1 = _crd[at];
         if (frac)
           r1 = cell.frac2cart(r1);
-        return cell.transform(r1, index::D(DIM).all(0));
+        return cell.transform(r1, index::D(DIM()).all(0));
       }
 
       /// \brief real-space position of an atom
@@ -220,7 +222,7 @@ The supercell concept generalization for the geometry class looks like:
 
         vector3<REAL> r1 = _crd[at];
         r1 = cell.cart2frac(r1);
-        return cell.transform(r1, index::D(DIM).all(0));
+        return cell.transform(r1, index::D(DIM()).all(0));
 
       }
 
@@ -441,7 +443,7 @@ The supercell concept generalization for the geometry class looks like:
       geometry (const CELL & __cell, const STRING_EX & __name = "") : cell(__cell) {
 
         init_default();
-        DIM = cell.DIM;
+        //DIM = cell.DIM;
         name = __name;
 
       }
@@ -450,7 +452,7 @@ The supercell concept generalization for the geometry class looks like:
       geometry (int dim = 0, const STRING_EX & __name = "") : cell(dim) {
 
         init_default();
-        DIM = dim;
+        //DIM = dim;
         name = __name;
 
       }
@@ -463,7 +465,7 @@ The supercell concept generalization for the geometry class looks like:
 
         init_default();
 
-        DIM = g.DIM;
+        //DIM = g.DIM;
 
         // options
         auto_update_types = g.auto_update_types;
@@ -755,7 +757,7 @@ The supercell concept generalization for the geometry class looks like:
         os << "geometry";
         if (name != "")
           os << " " << name;
-        os << "(" << DIM << "d,atom,x,y,z){\n";
+        os << "(" << DIM() << "d,atom,x,y,z){\n";
 
         /*
       os << "(";

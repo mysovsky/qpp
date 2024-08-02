@@ -192,7 +192,7 @@ namespace qpp {
   // -------------------------------------------------------------
 
 
-  std::string extract_base_name(std::string const & path);
+  STRING_EX extract_base_name(STRING_EX const & path);
 
   template<class REAL>
   qpp::vector3<REAL> vec_from_string(STRING_EX &_inst, int idx = 0, int idy = 1, int idz = 2 ) {
@@ -206,8 +206,8 @@ namespace qpp {
 
   }
 
-  void replace_string_inplace(std::string& subject, const std::string& search,
-                              const std::string& replace);
+  void replace_string_inplace(STRING_EX& subject, const STRING_EX& search,
+                              const STRING_EX& replace);
 
   //https://www.bfilipek.com/2018/07/string-view-perf-followup.html
   std::vector<std::string_view> split_sv(std::string_view strv, std::string_view delims = " ");
@@ -235,8 +235,20 @@ namespace qpp {
     return false;
   }
 
-  STRING_EX atomic_name_to_symbol(const STRING_EX & nm);
+  int common_begin(const STRING_EX & s1, const STRING_EX & s2);
 
+  // fixme - place it in different module!
+  template<class T>
+  //bool oneof(const T & t, std::initializer_list<T> list ){
+  bool oneof(const T & t, const std::vector<T> & list ){
+    for (const T & elem : list)
+      if (t==elem)
+	return true;
+    return false;
+  }
+
+  STRING_EX atomic_name_to_symbol(const STRING_EX & nm);
+  
 }
 
 #endif

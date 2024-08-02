@@ -38,7 +38,7 @@ namespace qpp {
     //fmt::print("nat={}\n", nat);
     std::getline(inp,s);
 
-    if (geom.DIM == 3) {
+    if (geom.DIM() == 3) {
         std::vector<std::string_view> splt = split_sv(s, " ");
         if (splt.size() == 9) {
 
@@ -138,7 +138,7 @@ namespace qpp {
       }
 
     if (force3d) {
-        geom.DIM = 3;
+      //geom.DIM = 3;
         geom.cell.DIM = 3;
       }
 
@@ -178,8 +178,8 @@ namespace qpp {
                  const qpp::geometry<REAL,TRANSFORM> & geom){
     out << geom.nat() << "\n";
 
-    if (geom.DIM>0)
-      for (int d = 0; d<geom.DIM; d++)
+    if (geom.DIM()>0)
+      for (int d = 0; d<geom.DIM(); d++)
         for (int i=0; i<3; i++)
           out << fmt::format("{:12.6f} ", (geom.cell)(d)(i));
     //out << geom.name();
@@ -197,8 +197,8 @@ namespace qpp {
                   const qpp::xgeometry<REAL,TRANSFORM> & geom){
     out << geom.nat() << "\n";
 
-    if (geom.DIM>0)
-      for (int d = 0; d<geom.DIM; d++)
+    if (geom.DIM()>0)
+      for (int d = 0; d<geom.DIM(); d++)
         for (int i=0; i<3; i++)
           out << fmt::format("{:4.3f} ", geom.cell(d)(i));
     //out << geom.name();

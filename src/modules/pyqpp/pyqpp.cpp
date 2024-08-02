@@ -15,6 +15,7 @@ PYBIND11_MODULE(pyqpp, m) {
   pyqpp_shape_export(m);
   pyqpp_neighbours_export(m);
   pyqpp_builders_export(m);
+  pyqpp_potentials_export(m);
   pyqpp_autosymm_export(m);
   pyqpp_io_export(m);
   pyqpp_gmsio_export(m);

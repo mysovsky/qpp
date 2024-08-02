@@ -553,7 +553,7 @@ namespace qpp {
         ngrain(index::D(3)){
         btbl = &t;
         geom = & g;
-        DIM = geom -> DIM;
+        DIM = geom -> DIM();
         //_disttable.clear();
         build_disttable();
         reference_mode = false;

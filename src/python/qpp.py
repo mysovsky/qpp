@@ -119,6 +119,7 @@ def xgeometry_from_list(real,cell,fields,name=''):
     if rtypes[t]!=rt:
         raise ValueError("Real type in xgeometry.__init__ does not much the supercell type")
 
+    print(gtypes[t], fields,name)
     xgeom = gtypes[t](cell,fields,name)
 
     for f in range(xgeom.nfields()):
@@ -130,7 +131,7 @@ def xgeometry_from_list(real,cell,fields,name=''):
 
 def xgeometry_from_dict(real,cell,**kwds):    
     name = kwds.pop('name','')    
-    return xgeometry_from_list(real,cell,kwds.items(),name)
+    return xgeometry_from_list(real,cell,list(kwds.items()),name)
     
 def xgeometry(*args,**kwds):
     return overloader([xgeometry_from_list,xgeometry_from_dict], \

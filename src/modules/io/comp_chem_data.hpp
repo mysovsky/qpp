@@ -306,9 +306,9 @@ namespace qpp {
     if (ccd_inst.m_tot_nat == 0 && !ccd_inst.m_init_anames.empty())
       ccd_inst.m_tot_nat = ccd_inst.m_init_anames.size();
 
-    g.DIM = ccd_inst.m_DIM;
+    //g.DIM = ccd_inst.m_DIM;
 
-    if (g.DIM > 0)
+    if (g.DIM() > 0)
       for (size_t i = 0; i < ccd_inst.m_DIM; i++) g.cell.v[i] = ccd_inst.m_cell_v[i];
 
     for (size_t i = 0; i < ccd_inst.m_init_anames.size(); i++)

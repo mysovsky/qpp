@@ -17,8 +17,8 @@ void def_autosymm (py::module m, const char * pyname) {
   //m.def("bravais_point_group1", &qpp::bravais_point_group1<REAL>);
   m.def("find_cryst_symm", &qpp::py_find_cryst_symm2<REAL>);
   m.def("find_cryst_symm", &qpp::py_find_cryst_symm1<REAL>);
-  m.def("find_point_subgroups", &qpp::py_find_point_subgroups1<REAL,true>);
-  m.def("find_point_subgroups", &qpp::py_find_point_subgroups1<REAL,false>);
+  //m.def("find_point_subgroups", &qpp::py_find_point_subgroups<REAL,true>);
+  m.def("find_point_subgroups", &qpp::py_find_point_subgroups<REAL>);
   //m.def("find_point_subgroups", &qpp::py_find_point_subgroups2<REAL,true>);
   //m.def("find_point_subgroups", &qpp::py_find_point_subgroups2<REAL,false>);
   m.def("find_translations", &qpp::py_find_translations<REAL>);
@@ -56,8 +56,8 @@ void def_autosymm (py::module m, const char * pyname) {
   m.def("pg_max_order",     &qpp::pg_max_order<REAL>,
 	py::arg("G"), py::arg("angle_error") = 8*qpp::matrix3<REAL>::tol_equiv);
 
-  std::string sbname = fmt::format("{0}_{1}","subspace_of3d",pyname);  
-  qpp::subspace_of3d<REAL>::py_export(m,sbname.c_str());
+  std::string sbname = fmt::format("{0}_{1}","subspace3",pyname);  
+  qpp::subspace3<REAL>::py_export(m,sbname.c_str());
   m.def("invariant_subspace",  &qpp::invariant_subspace<REAL>);
 
   std::string pgaxname = fmt::format("{0}_{1}","point_group_axes",pyname);

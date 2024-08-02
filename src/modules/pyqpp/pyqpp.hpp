@@ -5,8 +5,10 @@
 #undef slots
 #include <pybind11/pybind11.h>
 #include <pybind11/operators.h>
-//#include <pybind11/stl.h>
+#include <pybind11/stl.h>
+#include <pybind11/complex.h>
 #include <pybind11/iostream.h>
+//#include <pybind11/eigen.h>
 namespace py = pybind11;
 #pragma pop_macro("slots")
 
@@ -19,6 +21,7 @@ void pyqpp_xgeom_export        (py::module m);
 void pyqpp_shape_export        (py::module m);
 void pyqpp_neighbours_export   (py::module m);
 void pyqpp_builders_export     (py::module m);
+void pyqpp_potentials_export   (py::module m);
 void pyqpp_autosymm_export     (py::module m);
 void pyqpp_basis_ecp_export    (py::module m);
 void pyqpp_molecule_export     (py::module m);

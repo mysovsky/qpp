@@ -18,7 +18,7 @@ namespace qpp {
     data.resize(geom.nat());
     for (auto &per_atom_rec : data) per_atom_rec.resize(data_steps);
 
-    auto zero_idx = index::D(geom.DIM).all(0);
+    auto zero_idx = index::D(geom.DIM()).all(0);
 
     for (size_t i = 0; i < geom.nat(); i++) {
 
@@ -26,7 +26,7 @@ namespace qpp {
 
         for (size_t s = 0; s < data_steps; s++)
           for (size_t q = 0; q < geom.nat(); q++) {
-              for (iterator idx(index::D(geom.DIM).all(-1), index::D(geom.DIM).all(1));
+	    for (iterator idx(index::D(geom.DIM()).all(-1), index::D(geom.DIM()).all(1));
                    !idx.end(); idx++ )
                 if (i != q || idx != zero_idx) {
 

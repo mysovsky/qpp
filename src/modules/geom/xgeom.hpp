@@ -640,10 +640,10 @@ namespace qpp {
 
         dst.clear();
 
-        dst.DIM = DIM;
+        //dst.DIM = DIM;
 
         //copy cell vectors
-        for (size_t i = 0; i <DIM; i++) dst.cell.v[i] = cell.v[i];
+        for (size_t i = 0; i < DIM(); i++) dst.cell.v[i] = cell.v[i];
 
         //copy xgeom headers
         dst.set_format(_field_name, _field_type);
@@ -881,16 +881,11 @@ namespace qpp {
             fn.push_back(py::cast<STRING_EX>(t[0]));
             STRING_EX s = py::cast<STRING_EX>(t[1]);
 
-            if (s=="string")
-              ft.push_back(type_string);
-            else if (s=="real")
-              ft.push_back(type_real);
-            else if (s=="int")
-              ft.push_back(type_int);
-            else if (s=="bool")
-              ft.push_back(type_bool);
-            else
-              throw std::invalid_argument("In xgeometry constructor - bad field type");
+            if (s=="string" || s == "str" || s == "s" ) ft.push_back(type_string);
+            else if (s=="real" || s == "r") ft.push_back(type_real);
+            else if (s=="int" || s == "i")  ft.push_back(type_int);
+            else if (s=="bool" || s == "b") ft.push_back(type_bool);
+            else throw std::invalid_argument("In xgeometry constructor - bad field type");
           }
 
         set_format(fn,ft);

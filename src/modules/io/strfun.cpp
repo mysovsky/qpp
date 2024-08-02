@@ -142,6 +142,12 @@ namespace qpp{
        }
    }
 
+  int common_begin(const STRING_EX & s1, const STRING_EX & s2){
+    int i = 0;
+    while (s1[i] == s2[i]) i++;
+    return i;
+  }
+
   STRING_EX atomic_name_to_symbol(const STRING_EX & nm){
     size_t pos = nm.find_first_of("_0123456789");
     if (pos == STRING_EX::npos)
@@ -149,5 +155,5 @@ namespace qpp{
     else
       return nm.substr(0,pos);
   }
-  
+
 }

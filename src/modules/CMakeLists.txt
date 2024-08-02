@@ -33,6 +33,7 @@ if(PYTHON_BINDINGS)
         pyqpp/pyqpp_geom.cpp
         pyqpp/pyqpp_xgeom.cpp
         pyqpp/pyqpp_neighbours.cpp
+	pyqpp/pyqpp_potentials.cpp
         pyqpp/pyqpp_builders.cpp
         pyqpp/pyqpp_shape.cpp
         pyqpp/pyqpp_autosymm.cpp
