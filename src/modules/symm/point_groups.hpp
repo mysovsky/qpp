@@ -115,7 +115,7 @@ namespace qpp{
         for (int k=0; k<3; k++)
           S(j,k) += g.pos(i)(j)*g.pos(i)(k);
 
-    std::cout << "S= " << S << "\n";
+    //std::cout << "S= " << S << "\n";
 
     diagon3d(lambda,axes,S);
   }
@@ -304,18 +304,31 @@ namespace qpp{
 
   // -------------------------------------------------------------------------------
 
-  template <class REAL>
-  void complete_point_group(array_group<matrix3<REAL> > & G,
-                            std::vector<permutation> & P) {
-    for (int i=0; i<P.size(); i++)
-      for (int j=0; j<=i; j++){
+  template <class TRANSFORM>
+  void complete_group(array_group<TRANSFORM> & G,
+		      std::vector<permutation> & P) {
+    int inew = 0;
+    while (true){
+      int psize = P.size();
+      for (int i=0; i<P.size(); i++)
+	for (int j=inew; j<P.size(); j++){
           permutation p = P[i]*P[j];
           auto idx = std::find(P.begin(),P.end(),p);
           if (idx==P.end()){
-              P.push_back(p);
-              G.add(G[i]*G[j]);
-            }
+	    P.push_back(p);
+	    G.group.push_back(G[i]*G[j]);
+	  }
+	  p = P[j]*P[i];
+          idx = std::find(P.begin(),P.end(),p);
+          if (idx==P.end()){
+	    P.push_back(p);
+	    G.group.push_back(G[j]*G[i]);
+	  } 
         }
+      if (P.size() == psize)
+	break;
+      inew = psize;
+    }
 
   }
 
@@ -415,7 +428,7 @@ namespace qpp{
             }
         err = std::sqrt(err);
 
-        std::cout << "fix_point_group: iteration = " << it << " error = " << err << "\n";
+        //std::cout << "fix_point_group: iteration = " << it << " error = " << err << "\n";
 
         if (err < eps) break;
         fix4_point_group(G,M);
@@ -506,16 +519,16 @@ namespace qpp{
 
     best_axes(axes,lmb,g);
 
-    std::cout << "lmb= " << lmb << " axes= " << axes << "\n";
+    //std::cout << "lmb= " << lmb << " axes= " << axes << "\n";
 
     naxis = axes.col(2);
-    std::cout << " linaxis = " <<  naxis << "\n";
+    //std::cout << " linaxis = " <<  naxis << "\n";
 
     for (int i=0; i<g.nat(); i++) {
         vector3<REAL> r = g.pos(i);
 
-        std::cout << "i= " << i << " r= " << r << " r*n= " << naxis.dot(r)
-                  << " r-n(r*n) = " << r - naxis*naxis.dot(r) << "\n";
+        //std::cout << "i= " << i << " r= " << r << " r*n= " << naxis.dot(r)
+        //          << " r-n(r*n) = " << r - naxis*naxis.dot(r) << "\n";
 
         if ( (r - naxis*naxis.dot(r)).norm() > R ) {
             linear = false;
@@ -525,7 +538,7 @@ namespace qpp{
 
     nplane = axes.col(0);
 
-    std::cout << " planaxis = " <<  nplane << "\n";
+    //std::cout << " planaxis = " <<  nplane << "\n";
 
     for (int i=0; i<g.nat(); i++) {
         vector3<REAL> r = g.pos(i);
@@ -549,13 +562,13 @@ namespace qpp{
             G = shnfl<REAL>::Dnh(4);
             G.name = "D_inf_h";
 
-            std::cout << "linear molecule with Dh\n";
+            //std::cout << "linear molecule with Dh\n";
           }
         else{
             G = shnfl<REAL>::Cnv(4);
             G.name = "C_inf_v";
 
-            std::cout << "linear molecule with Cv\n";
+            //std::cout << "linear molecule with Cv\n";
           }
 
         for (int j=0; j < G.size(); j++)
@@ -569,7 +582,7 @@ namespace qpp{
         g.add("refpoint",  nplane*h);
         g.add("refpoint", -nplane*h);
 
-        std::cout << "Planar molecule\n";
+        //std::cout << "Planar molecule\n";
       }
 
     // sort atoms in reverse order by the distance from centre
@@ -580,8 +593,8 @@ namespace qpp{
 
     //std::cout << g.pos(0).norm() << " " << g.pos(g.nat()-1).norm() << "\n";
 
-    write_xyz(std::cout,g);
-    std::cout << "centre: " << cntr << "\n";
+    //write_xyz(std::cout,g);
+    //std::cout << "centre: " << cntr << "\n";
 
     // estimate maximum angle error during the fit
     REAL angle_error = 2*std::asin(R/(g.pos(0).norm())), theta;
@@ -706,7 +719,7 @@ FOUND:
         }
 
     // Construct possibly missing elements
-    complete_point_group(G, P);
+    complete_group(G, P);
 
     // Construct multiplication table
     group_analyzer<permutation> AP(P);
@@ -717,7 +730,7 @@ FOUND:
 
     STRING_EX Gname = point_group_symbol(G);
 
-    std::cout << " group= " << Gname << " found= " << found << "\n";
+    //std::cout << " group= " << Gname << " found= " << found << "\n";
 
     G.name = Gname;
 

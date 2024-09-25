@@ -3,9 +3,9 @@
 
 #include <geom/lace3d.hpp>
 #include <symm/cell.hpp>
-//#include <geom/cell.hpp>
 #include <consts.hpp>
 #include <vector>
+#include <memory>
 
 namespace qpp{
 
@@ -13,100 +13,100 @@ namespace qpp{
     @param REAL either float or double depending of what precision is necessary
     @param BOUND boolean parameter specifying if the rotrans should be "bound" to certain periodic cell. The need for "bound rotrans" is the following: a symmetry group consisting of rotrans operations is, generally speaking, infinite. "Bound rotrans" makes it finite by reducing the symmetry operation result (a vector, a point) to 3d-periodic cell with given translation vectors. Such periodic cell must be the same for all ""bound rotranses" comprising the group.
    */
-  template<class REAL, bool BOUND = false>
+  template <typename ELEM> using matrix4 = Eigen::Matrix<ELEM, 4, 4>;
+
+  template<class REAL>
   struct rotrans {
-      typedef periodic_cell<REAL>  BOUNDARY;
+    typedef periodic_cell<REAL>  BOUNDARY;
+    
+    //!\brief the threshhold to consider two translation vectors equal
+    //static REAL tol_trans;
+    
+    //!\brief the threshhold to consider two rotation matricies equal
+    //static REAL tol_rot;
+    
+    static rotrans<REAL> unity()
+    {
+      return rotrans<REAL>(vector3<REAL>::Zero(), matrix3<REAL>::unity());
+    }
+    
+    //!\brief the translation vector
+    vector3<REAL> T;
+    
+    //!\brief the rotation matrix
+    matrix3<REAL> R;
+    
+    //!\brief the periodic cell to which the bound rotrans is bound
+    std::shared_ptr<BOUNDARY> cell{nullptr};
 
-      //!\brief the threshhold to consider two translation vectors equal
-      static REAL tol_trans;
-
-      //!\brief the threshhold to consider two rotation matricies equal
-      static REAL tol_rot;
-
-      static rotrans<REAL,BOUND> unity;
-
-      //!\brief the translation vector
-      vector3<REAL> T;
-
-      //!\brief the rotation matrix
-      matrix3<REAL> R;
-
-      //!\brief the periodic cell to which the bound rotrans is bound
-      //! (should be NULL if BOUND==false)
-      BOUNDARY * cell{nullptr};
-
-      //!\brief empty constructor creates unity operation
-      rotrans(){
-        T = vector3<REAL>(0);
-        R = matrix3<REAL>::unity;
-        cell = nullptr;
-      }
+    //!\brief empty constructor creates unity operation
+    rotrans(){
+      T = vector3<REAL>(0);
+      R = matrix3<REAL>::unity();
+      cell = std::make_shared<periodic_cell<REAL>>(0);
+    }
 
       //!\brief copy constructor
-      rotrans(const rotrans<REAL,BOUND> & a) {
-        T = a.T;
-        R = a.R;
-        if (BOUND)
-          cell = a.cell;
-        else
-          cell = nullptr;
-      }
+    rotrans(const rotrans<REAL> & a) {
+      T = a.T;
+      R = a.R;
+      cell = a.cell;
+    }
 
-      //!\brief creates translation operation with _T vector
-      rotrans(const vector3<REAL> &_T, BOUNDARY * _cell = nullptr) {
-        T=_T;
-        R = matrix3<REAL>::unity;
-        if (BOUND)
-          cell = _cell;
-        else
-          cell = nullptr;
-      }
+    //!\brief creates translation operation with _T vector
+    rotrans(const vector3<REAL> &_T, std::shared_ptr<BOUNDARY>  _cell = nullptr) {
+      T=_T;
+      R = matrix3<REAL>::unity();
+      if (_cell==nullptr)
+	cell = std::make_shared<periodic_cell<REAL>>(0);
+      else
+	cell = _cell;
+    }
 
-      //!\brief creates rotation operation with _R matrix
-      rotrans(const matrix3<REAL> & _R, BOUNDARY * _cell = nullptr) {
-        T = vector3<REAL>(0);
-        R = _R;
-        if (BOUND)
-          cell = _cell;
-        else
-          cell = nullptr;
-      }
+    //!\brief creates rotation operation with _R matrix
+    rotrans(const matrix3<REAL> & _R, std::shared_ptr<BOUNDARY>  _cell = nullptr) {
+      T = vector3<REAL>(0);
+      R = _R;
+      if (_cell==nullptr)
+	cell = std::make_shared<periodic_cell<REAL>>(periodic_cell<REAL>(0));
+      else
+	cell = _cell;
+    }
+    
+    //!\brief creates rotation-translation operation with vector _T and matrix _R
+    rotrans(const vector3<REAL> &_T, const matrix3<REAL> &_R,
+	    std::shared_ptr<BOUNDARY> _cell = nullptr){
+      T = _T;
+      R = _R;
+      if (_cell==nullptr)
+	cell = std::make_shared<periodic_cell<REAL>>(periodic_cell<REAL>(0));
+      else
+	cell = _cell;
+    }
 
-      //!\brief creates rotation-translation operation with vector _T and matrix _R
-      rotrans(const vector3<REAL> &_T, const matrix3<REAL> &_R,
-              BOUNDARY * _cell = nullptr){
-        T = _T;
-        R = _R;
-        if (BOUND)
-          cell = _cell;
-        else
-          cell = nullptr;
+    //!\brief Multiplication of two rotrans operations
+    inline rotrans<REAL> operator*(const rotrans<REAL> & b) const {
+      vector3<REAL> t = T + R*b.T;
+      vector3<REAL> f =  cell -> cart2frac(t);
+      for (int d=0; d<cell->DIM; d++) {
+	f(d) -= floor(f(d));
+	if (std::abs(f(d)-REAL(1)) < cell->tol_transl)
+	  f(d)=REAL(0);
       }
-
-      //!\brief Multiplication of two rotrans operations
-      inline rotrans<REAL,BOUND> operator*(const rotrans<REAL,BOUND> & b) const {
-        vector3<REAL> t = T + R*b.T;
-        if (BOUND) {
-            vector3<REAL> f =  cell -> cart2frac(t);
-            for (int d=0; d<cell->DIM; d++) {
-                f(d) -= floor(f(d));
-                if (std::abs(f(d)-REAL(1)) < tol_trans)
-                  f(d)=REAL(0);
-              }
-            t = cell -> frac2cart(f);
-          }
-        return rotrans<REAL,BOUND>(t, R*b.R,cell);
-      }
+      t = cell -> frac2cart(f);
+      return rotrans<REAL>(t, R*b.R,cell);
+    }
+  
 
       /*!\brief Comparison of two rotrans operations. They are considered equal
       if their translations differ by less than tol_trans and their
       rotation matricies differ by less than tol_rot.
     */
-      inline bool operator==(const rotrans<REAL, BOUND> & b) const {
-        if (!BOUND) {
-            return (T - b.T).norm()<= tol_trans &&
-                (R - b.R).norm() <= tol_rot;
-          }
+    inline bool operator==(const rotrans<REAL> & b) const {
+    return (T - b.T).norm()<= cell->tol_transl &&
+      (R - b.R).norm() <= cell->tol_rot;
+    }
+  /*
         else {
             if ( (R - b.R).norm() > tol_rot) return false;
             vector3<REAL> f =  cell -> cart2frac(T - b.T);
@@ -122,10 +122,10 @@ namespace qpp{
             return (f).norm() <= tol_trans;
           }
       }
-
+  */
 
       //!\brief Inequality operator. Simply !(a==b).
-      inline bool operator!=(const rotrans<REAL, BOUND> & b) const {
+      inline bool operator!=(const rotrans<REAL> & b) const {
         return !(*this == b);
       }
 
@@ -133,42 +133,38 @@ namespace qpp{
       //!  acts on this vector
       inline vector3<REAL> operator*(const vector3<REAL> & v) const {
         vector3<REAL> res = T+R*v;
-        if (BOUND)
-          res = cell -> reduce(res);
+	res = cell -> reduce(res);
         return res;
       }
 
-      inline rotrans<REAL, BOUND> pow(REAL fn) const {
+      inline rotrans<REAL> pow(REAL fn) const {
         int n = floor(fn);
         // fixme - inefficient
-        rotrans<REAL,BOUND> A = rotrans<REAL,BOUND>::unity;
-        rotrans<REAL,BOUND> C = *this;
+        rotrans<REAL> A = rotrans<REAL>::unity();
+        rotrans<REAL> C = *this;
         A.cell = C.cell;
         if (n>0){
             while (n-- > 0)
               A = (C)*A;
           }
         else if (n<0){
-            rotrans<REAL,BOUND>  B = C.inverse();
+            rotrans<REAL>  B = C.inverse();
             while (n++ < 0)
               A = (B)*A;
           }
         return A;
       }
 
-      inline rotrans<REAL, BOUND> inverse() const {
+      inline rotrans<REAL> inverse() const {
         matrix3<REAL> A = ((*this).R).inverse();
         vector3<REAL> t = - A*(*this).T;
-        return rotrans<REAL,BOUND>(t, A, (*this).cell);
+        return rotrans<REAL>(t, A, (*this).cell);
       }
 
       //!\ Rotrans oputput in qpp format
       virtual void write(std::basic_ostream<CHAR_EX,TRAITS> &os, int offset=0) const{
         for (int k=0; k<offset; k++) os << " ";
-        if (BOUND)
-          os << "bound_rotrans(";
-        else
-          os << "rotrans(";
+	os << "rotrans(";
         os << T << "," << R << ")";
       }
 
@@ -177,33 +173,35 @@ namespace qpp{
 
       inline vector3<REAL> py_mulv(const vector3<REAL> & v) const
       {return (*this)*v; }
-      inline rotrans<REAL,BOUND> py_mulr(const rotrans<REAL,BOUND> & b) const {return (*this)*b; }
+      inline rotrans<REAL> py_mulr(const rotrans<REAL> & b) const {return (*this)*b; }
 
 #endif
 
   };
 
-  template<typename _CharT, class _Traits, class VALTYPE, bool BOUND>
+  template<typename _CharT, class _Traits, class VALTYPE>
   std::basic_ostream<_CharT, _Traits>&
   operator<<(std::basic_ostream<_CharT, _Traits>& __os,
-             const rotrans<VALTYPE,BOUND> & r){
+             const rotrans<VALTYPE> & r){
     r.write(__os);
     return __os;
   }
 
+/*
 
   template<class REAL, bool BOUND>
-  REAL rotrans<REAL,BOUND>::tol_trans = vector3<REAL>::tol_equiv;
+  REAL rotrans<REAL>::tol_trans = vector3<REAL>::tol_equiv;
 
   template<class REAL, bool BOUND>
-  REAL rotrans<REAL,BOUND>::tol_rot = matrix3<REAL>::tol_equiv;
-
-  template<class REAL, bool BOUND>
-  rotrans<REAL,BOUND>
-  rotrans<REAL,BOUND>::unity(vector3<REAL>::Zero(), matrix3<REAL>::unity);
-  
-  template<class REAL, bool BOUND>
-  matrix4<REAL> rotrans4d(const rotrans<REAL,BOUND> & R)
+  REAL rotrans<REAL>::tol_rot = matrix3<REAL>::tol_equiv;
+*/
+  /* 
+  template<class REAL>
+  rotrans<REAL> rotrans<REAL>::unity= rotrans<REAL>(vector3<REAL>::Zero(), matrix3<REAL>::unity);
+  }
+  */
+  template<class REAL>
+  matrix4<REAL> rotrans4d(const rotrans<REAL> & R)
   {
     matrix4<REAL> res = matrix4<REAL>::Identity();
     res.block(0,0,3,3) = R.R;
@@ -212,14 +210,14 @@ namespace qpp{
   }
   
   template <class REAL>
-  rotrans<REAL,true> rotrans_shift(const rotrans<REAL, true> & r, const index & I)
+  rotrans<REAL> rotrans_shift(const rotrans<REAL> & r, const index & I)
   {
     auto & cl = *r.cell;
-    return rotrans<REAL,true>(vector3<REAL>(r.T + cl(0)*I(0) + cl(1)*I(1) + cl(2)*I(2)), r.R, r.cell);
+    return rotrans<REAL>(vector3<REAL>(r.T + cl(0)*I(0) + cl(1)*I(1) + cl(2)*I(2)), r.R, r.cell);
   }
 
   template <class REAL>
-  rotrans<REAL> rotrans2frac(const rotrans<REAL, true> & r){
+  rotrans<REAL> rotrans2frac(const rotrans<REAL> & r){
     const auto & cl = *r.cell;
     matrix3<REAL> A = {cl(0),cl(1),cl(2)}, B;
     B = A.transpose();
@@ -229,12 +227,12 @@ namespace qpp{
   }
 
   template <class REAL>
-  rotrans<REAL,true> rotrans2cart(const rotrans<REAL> & f, periodic_cell<REAL> & cl){
+  rotrans<REAL> rotrans2cart(const rotrans<REAL> & f, periodic_cell<REAL> & cl){
     matrix3<REAL> A = {cl(0),cl(1),cl(2)}, B;
     B = A.transpose();
     A = B;
     B = A.inverse();
-    return rotrans<REAL,true>(A*f.T, A*f.R*B, &cl);
+    return rotrans<REAL>(A*f.T, A*f.R*B, &cl);
   }
 
   

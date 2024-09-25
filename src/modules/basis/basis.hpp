@@ -21,12 +21,8 @@ namespace py = pybind11;
 #include <fmt/ostream.h>
 
 namespace qpp {
-  //fixme - this drags the whole namespace into qpp::
-  //  using namespace boost::numeric::ublas;
 
-  template<class FREAL, class CREAL>
-  // FREAL - real number type for wavefunctions
-  // CREAL - real number type for coordinates
+  template<class REAL>
   class basis //: public qpp_object{
   {
 
@@ -40,8 +36,8 @@ namespace qpp {
 
       // Calculate the values of basis functions on a grid
 
-      virtual Eigen::Matrix<FREAL, Eigen::Dynamic, 1> &
-      values(const std::vector<vector3<CREAL> > & grid) =0;
+      virtual Eigen::Matrix<REAL, Eigen::Dynamic, 1> &
+      values(const std::vector<vector3<REAL> > & grid);
 
   };
 
@@ -66,7 +62,7 @@ namespace qpp {
 
   // ----------------------------------------------------------------
 
-  template <qpp_bastype BT, class FREAL>
+  template <qpp_bastype BT, class REAL>
   class qpp_shell;
   // ----------------------------------------------------------------
 
@@ -80,13 +76,13 @@ namespace qpp {
 
   // ----------------------------------------------------------------
 
-  template <qpp_bastype BT, class FREAL=double>
+  template <qpp_bastype BT, class REAL=double>
   class atomic_basis{
     public:
 
       STRING_EX atom, basis_name;
-      std::vector<qpp_shell<BT, FREAL> > shells;
-      atomic_ecp<FREAL> ecp;
+      std::vector<qpp_shell<BT, REAL> > shells;
+      atomic_ecp<REAL> ecp;
 
       bool empty(){
         return shells.size() == 0 && basis_name == "";
@@ -95,17 +91,17 @@ namespace qpp {
 #if defined(PY_EXPORT) || defined(QPPCAD_PY_EXPORT)
 
       static void py_export(py::module m, const char * pyname){
-        //*py::class_< std::vector<qpp_shell<BT,FREAL> > >(m, pyname)
-        //.def(bp::vector_indexing_suite<std::vector<qpp_shell<BT,FREAL> > >() );
+        //*py::class_< std::vector<qpp_shell<BT,REAL> > >(m, pyname)
+        //.def(bp::vector_indexing_suite<std::vector<qpp_shell<BT,REAL> > >() );
 
-        py::class_<atomic_basis<BT,FREAL> >(m, pyname)
+        py::class_<atomic_basis<BT,REAL> >(m, pyname)
             //TODO: Why init didnt be here in original bp bindings?
             .def(py::init<>())
             //TODO: cannot add
-            .def_readwrite("shells", &atomic_basis<BT,FREAL>::shells )
-            .def_readwrite("ecp",    &atomic_basis<BT,FREAL>::ecp)
-            .def_readwrite("atom",   &atomic_basis<BT,FREAL>::atom )
-            .def_readwrite("basis_name",   &atomic_basis<BT,FREAL>::basis_name )
+            .def_readwrite("shells", &atomic_basis<BT,REAL>::shells )
+            .def_readwrite("ecp",    &atomic_basis<BT,REAL>::ecp)
+            .def_readwrite("atom",   &atomic_basis<BT,REAL>::atom )
+            .def_readwrite("basis_name",   &atomic_basis<BT,REAL>::basis_name )
             ;
       }
 
@@ -115,12 +111,12 @@ namespace qpp {
 
   // ----------------------------------------------------------------------
   /*
-  template <qpp_bastype ST, class FREAL=double>
+  template <qpp_bastype ST, class REAL=double>
   class qpp_basis_data : public qpp_declaration{
 
     std::vector<std::vector<STRING_EX> > labels;
     std::vector<std::vector<int> > numbers;
-    std::vector<atomic_basis<ST,FREAL> > _atbasis;
+    std::vector<atomic_basis<ST,REAL> > _atbasis;
 
   public:
 
@@ -130,7 +126,7 @@ namespace qpp {
       qpp_declaration("basis",__name,__owner,__parm,__line,__file)
     {}
 
-    qpp_basis_data(const qpp_basis_data<ST,FREAL> & bas) :
+    qpp_basis_data(const qpp_basis_data<ST,REAL> & bas) :
       qpp_declaration(bas)
       // fixme - implement this
     {}
@@ -187,8 +183,8 @@ namespace qpp {
         //std::cerr << "alive2\n";
 
         if (decl(i)->gettype() == qtype_shell +
-      qtype_data<FREAL>::type + qtype_bastype(ST))
-    add_shell(*((qpp_shell<ST,FREAL>*)decl(i)) );
+      qtype_data<REAL>::type + qtype_bastype(ST))
+    add_shell(*((qpp_shell<ST,REAL>*)decl(i)) );
         else
     owner()->error("Wrong basis shell type", decl(i)->line(), decl(i)->file());
       }
@@ -233,12 +229,12 @@ namespace qpp {
     inline int n_atbasis() const
     { return _atbasis.size();}
 
-    inline atomic_basis<ST,FREAL> & atbasis(int i)
+    inline atomic_basis<ST,REAL> & atbasis(int i)
     { return _atbasis[i];}
 
     void new_atbasis()
     {
-      _atbasis.push_back( atomic_basis<ST,FREAL>() );
+      _atbasis.push_back( atomic_basis<ST,REAL>() );
       labels.push_back(std::vector<STRING>());
       numbers.push_back(std::vector<int>());
     }
@@ -263,7 +259,7 @@ namespace qpp {
       add_label(n_atbasis()-1,lbl);
     }
 
-    void add_shell(int r, const qpp_shell<ST,FREAL> & sh)
+    void add_shell(int r, const qpp_shell<ST,REAL> & sh)
     {
       bool found = false;
       for (int i=0; i<_atbasis[r].shells.size(); i++)
@@ -277,7 +273,7 @@ namespace qpp {
   _atbasis[r].shells.push_back(sh);
     }
 
-    void add_shell(const qpp_shell<ST,FREAL> & sh)
+    void add_shell(const qpp_shell<ST,REAL> & sh)
     {
       add_shell(n_atbasis()-1,sh);
     }
@@ -297,11 +293,11 @@ namespace qpp {
 
     virtual qppobject_type gettype() const
     //fixme
-    { return qtype_basis | qtype_basis_gauss | qtype_data<FREAL>::type; }
+    { return qtype_basis | qtype_basis_gauss | qtype_data<REAL>::type; }
 
     virtual qpp_object * copy() const
     {
-      return new qpp_basis_data<ST,FREAL>(*this);
+      return new qpp_basis_data<ST,REAL>(*this);
     }
 
     virtual void write_g98(std::basic_ostream<CHAR_EX,TRAITS> &os, int offset=0) const
@@ -353,7 +349,7 @@ namespace qpp {
       if (name()!="")
   os << " " << name() << "(";
       os << "( real=";
-      if (qtype_data<FREAL>::type == qtype_data_double)
+      if (qtype_data<REAL>::type == qtype_data_double)
   os << "double";
       else
   os << "float";
@@ -425,12 +421,12 @@ namespace qpp {
 
   // ----------------------------------------------------------------------
   /*
-  template <class FREAL=double, int DIM=0 , class CREAL=double,
-      class TRANSFORM = periodic_cell<DIM,CREAL> >
+  template <class REAL=double, int DIM=0 , class REAL=double,
+      class TRANSFORM = periodic_cell<DIM,REAL> >
   class gauss_cart_basis{
 
-    gencon_shell<FREAL> * _shells;
-    geometry<DIM,CREAL,TRANSFORM> * _geom;
+    gencon_shell<REAL> * _shells;
+    geometry<DIM,REAL,TRANSFORM> * _geom;
 
   public:
 
@@ -441,7 +437,7 @@ namespace qpp {
     {}
 
     // Calculate the values of basis functions on a grid
-    virtual boost::numeric::ublas::vector<FREAL> & values(const std::vector<vector3d<CREAL> > & grid){}
+    virtual boost::numeric::ublas::vector<REAL> & values(const std::vector<vector3d<REAL> > & grid){}
 
     /*    virtual int n_next() const
     {

@@ -165,7 +165,7 @@ def merge_equiv_subs(subspaces,subgroups,multab):
     while i<len(subspaces):
         if not already[i] and subspaces[i].dim != -1:
             idx = [j for j,l in enumerate(subspaces) if l==subspaces[i] ]
-            print i,idx
+            print(i,idx)
             g = []
             for j in idx:
                 g = g + subgroups[j]
@@ -188,11 +188,11 @@ def recurs_add_subs(multab,subgroups,subspaces,sg,ss,i,n):
     for j in xrange(i[-1]+1,n):
         nss = ss & subspaces[j]
         if nss.dim in [1,2]:
-            print '  '*len(i),i+[j],nss
+            print('  '*len(i),i+[j],nss)
             recurs_add_subs(multab,subgroups,subspaces,complete_subgroup(subgroups[j] + sg,multab), nss, i+[j], n)
         elif nss.dim == 0:
             add_subs(multab,subgroups,subspaces,complete_subgroup(subgroups[j] + sg,multab),nss)
-            print '  '*len(i),i+[j],nss,sg, len(subgroups[subspaces.index(nss)])
+            print('  '*len(i),i+[j],nss,sg, len(subgroups[subspaces.index(nss)]))
 
 def add_subspace(subspaces,elements,s,g):
     try:
@@ -296,5 +296,371 @@ def find_point_subgroups1(G):
 
 
 def find_cryst_symm(geom,R):
-    B = array_point_group_d()
-    bravais_point_group(B,geom.cell,R)
+    B = qpp.array_point_group_d()
+    qpp.bravais_point_group(B,geom.cell,R)
+    G = qpp.array_fincryst_group_d()
+    for b in B:
+        geom1 = qpp.geometry_d(geom.cell)
+        for x in geom:
+            geom1.add(x[:4])
+        for j in range(len(geom)):
+            geom1.coord[j] = b*geom.pos(j)
+        tt = qpp.find_translations(geom,geom1,geom.cell,R)
+        for t in tt:
+            r = bound_rotrans_d(t,b,geom.cell)
+            print(analyze_transform(r.R),r.T)
+            #G.add(r)
+        #print(tt)
+    return G
+
+
+def find_point_subgroups(G):
+    pass
+
+def rotrans_statpoint(rtr):
+    cell = rtr.cell
+    r = qpp.vector3d(0)
+    s = qpp.vector3d(0)
+    n=0
+    RR = qpp.matrix3d.identity()
+    while True:
+        print(n,r)
+        s += r
+        n+=1
+        RR = RR*rtr.R
+        r = rtr.R*r + rtr.T
+        if (RR - qpp.matrix3d.identity()).norm() < rtr.tol_rot:
+            break
+    s = s/n
+    print(n,r,s)
+    print('frac: ',cell.cart2frac(s))
+    rtr1 = qpp.rotrans_d(rtr.T,rtr.R)
+    s1 = rtr1*s
+    print(rtr.R*s+rtr.T, s1)
+    if (s1-s).norm() > rtr.tol_trans:
+        f = cell.cart2frac(s1-s)
+        rtr2 = qpp.rotrans_d(rtr.T + s -s1,rtr.R)
+        print('  t frac= ', f)
+        print(s,rtr2*s)
+    
+def rotrans_shift(rtr,I):
+    cell = rtr.cell
+    return qpp.bound_rotrans_d(rtr.T + cell[0]*I[0] + cell[1]*I[1] + cell[2]*I[2], rtr.R, cell)
+    
+def analyze_rotrans(rtr):
+    eps = 1e-8
+    R = rtr.R
+    T = rtr.T
+    ax,phi,inv = qpp.analyze_transform(R)
+    axt = ax.dot(T)
+    perpt = T - axt*ax
+    t_stab = qpp.vector3d(0e0)
+    if abs(phi) < rtr.tol_rot:
+        n=0
+    else:
+        n = round(2*pi/phi)
+        if n==5 or n>6:
+            n=0
+    if inv:
+        if n==0:
+            rtype = 'inversion'
+        elif n==2:
+            rtype = 'reflection'
+            if perpt.norm() > rtr.tol_trans:
+                rtype = 'glide plane'
+                t_stab = -1e0*perpt
+        else:
+            rtype = 'rotoinversion'
+    else:
+        if n==0:
+            rtype = 'identity'
+            if T.norm() > rtr.tol_trans:
+                rtype = 'translation'
+        else:
+            rtype = 'rotation'
+            if abs(axt) > rtr.tol_trans:
+                rtype = 'screw axis'
+                t_stab = -axt*ax
+    if rtype in ['identity','translation']:
+        point = qpp.vector3d(0e0)
+        nf = 0
+    else:
+        r = qpp.vector3d(0)
+        s = qpp.vector3d(0)
+        nf=0
+        RR = qpp.matrix3d.identity()
+        while True:
+            s += r
+            nf+=1
+            RR = RR*R
+            r = R*r + T + t_stab
+            if (RR - qpp.matrix3d.identity()).norm() < rtr.tol_rot:
+                break
+        point = s/nf               
+    return {'type':rtype, 'order':nf, 'axis':ax, 'rotation order': n,
+            'point':rtr.cell.cart2frac(point),
+            'stabilize' : rtr.cell.cart2frac(t_stab)}
+
+def npmat(A):
+    return np.array([[A[j,k] for k in [0,1,2]] for j in [0,1,2]])
+
+def vecnp(v):
+    return qpp.vector3d(*v)
+
+def matnp(A):
+    return qpp.matrix3d(*[vecnp(A[i]) for i in [0,1,2]])
+
+def rotrans_svd(rtr):
+    R = rtr.R
+    T = rtr.T
+    A = npmat(qpp.matrix3d.identity() - R )
+    U,S,Vh = np.linalg.svd(A)
+    return matnp(U),vecnp(S),matnp(Vh)
+
+def rotrans_rinv(U,S,Vh):
+    eps = 1e-8
+    SV = qpp.matrix3d(Vh)
+    for i in [0,1,2]:
+        if abs(S[i]) < eps:
+            si = 0e0
+        else:
+            si = 1e0/S[i]
+        for j in [0,1,2]:
+            SV[i,j] *= si
+    return (U*SV).tran()
+
+def rotrans_axprj(U,S,Vh):
+    eps = 1e-8
+    SV = qpp.matrix3d(Vh)
+    for i in [0,1,2]:
+        if abs(S[i]) > eps:
+            SV[i] *= 0e0
+    return U*SV
+
+def floor(x):
+    return round(x-.4999999999)
+
+def rotrans_normalize(g):
+    eps = 1e-6
+    cell = g.cell
+    U,S,V = rotrans_svd(g)
+    stb = cell.cart2frac(-1e0*rotrans_axprj(U,S,V)*g.T)
+    pt  = cell.cart2frac(rotrans_rinv(U,S,V)*g.T)
+    for i in [0,1,2]:
+        if abs(stb[i] - round(stb[i])) > eps:
+            return g, False
+    S = qpp.index([round(stb[i]) for i in [0,1,2] ])
+    I = qpp.index([round(pt[i]) for i in [0,1,2] ])
+    #print('    rn: ', I)
+    ti = cell[0]*I[0] + cell[1]*I[1] + cell[2]*I[2]
+    ts = cell[0]*S[0] + cell[1]*S[1] + cell[2]*S[2]
+    rtr1 = qpp.rotrans_d(g.T + ts - ti + g.R*ti, g.R)
+    return rtr1, True
+    
+def rotrans_list(G):
+    lst = []
+    for i in range(len(G)):
+        r,b = rotrans_normalize(G[i])
+        if b:
+            lst.append(r)
+    return lst
+    
+
+
+def relevant_rotrances(rtr, eps = 1e-4):
+    cell = rtr.cell
+    artr = analyze_rotrans(rtr)
+    stb = cell.cart2frac(artr['stabilize'])
+    for i in [0,1,2]:
+        if abs(stb[i] - round(stb[i])) > eps:
+            return []
+    S = qpp.index([round(stb[i]) for i in [0,1,2] ])
+    #return [rotrans_shift(rtr,S)]
+    rtr0 = rotrans_shift(rtr,S)
+    dpoint = []
+    dstab = []
+    for i in [0,1,2]:
+        I = qpp.index([0,0,0])
+        I[i] = 1
+        a = analyze_rotrans(rotrans_shift(rtr0,I))
+        dpoint.append(cell.cart2frac(a['point']))
+        dstab.append(cell.cart2frac(a['stabilize']))
+    return rtr0, cell.cart2frac(artr['point']), dpoint, dstab
+   
+def is_point_symm(rtr):
+    U,S,Vh = rotrans_svd(rtr)
+    s = rotrans_axprj(U,S,Vh) @ np.array([x for x in g.T])
+
+def rtr_index(psub,r):
+    reps = 1e-4
+    teps = 1e-4
+    for i in range(len(psub)):
+        if (psub[i].R - r.R).norm()<reps and (psub[i].T - r.T).norm()<teps:
+            return i
+    return None
+
+def mkboundrtr(rtr,cell):
+    return qpp.bound_rotrans_d(rtr.T,rtr.R,cell)
+
+
+def fill_psub(psub,r,cell):
+    reps = 1e-6
+    teps = 1e-6
+    if rtr_index(psub,r) :
+        return True
+    inew = len(psub)
+    psub.append(r)
+    while inew < len(psub):
+        inewest = len(psub)
+        for i in range(inewest):
+            for j in range(inew,inewest):
+                h1 = psub[i]*psub[j]
+                rh = mkboundrtr(h1,cell)
+                a =  analyze_rotrans(rh)
+                if a['type'] in ['screw axis','transalation','glide plane']:
+                    print(a)
+                    return False
+                elif a['type']=='identity':
+                    print(a)
+                    pass
+                ri = rtr_index(psub,h1)
+                print(len(psub),ri)
+                if ri == None:
+                    psub.append(h1)
+                    print(h1.R)
+                    print(h1.T)
+                    print(a)
+                h2 = psub[j]*psub[i]
+                rh = mkboundrtr(h2,cell)
+                a =  analyze_rotrans(rh)
+                if a['type'] in ['screw axis','transalation','glide plane']:
+                    return False
+                    print(analyze_rotrans(rh))
+                if a['type']=='identity':
+                    print(a)
+                    pass
+                ri =rtr_index(psub,h2)
+                print(len(psub),ri)
+                if ri == None:
+                    psub.append(h2)
+                    print(h2.R)
+                    print(h2.T)
+                    print(a)
+        inew = inewest
+    return psub
+
+def fill_subgroup(i):
+    ps1=[]
+    fill_psub(ps1,relrtr[i],cell)
+    ps2 = ps1.copy()
+    for j in range(len(relrtr)):
+        if fill_psub(ps2,relrtr[j],cell):
+            ps1 = ps2.copy()
+        else:
+            ps2 = ps1.copy()
+    todel=[]
+    for j in range(len(ps2)):
+        k  = rtr_index(ps2,ps2[j])
+        if k!=j:
+            print(j,k)
+            todel.append(j)
+            del ps2[j]
+    todel.reverse()
+    for j in todel:
+        delps2[j]
+    return ps2
+
+for i in range(len(G)):
+    print('rotrans ',i)
+    print('  ',qpp.analyze_transform(G[i].R))
+    a=analyze_rotrans(G[i])
+    print('  ',a)
+    for I in qpp.index_range((0,0,0),(2,2,2)):
+        a=analyze_rotrans(rotrans_shift(G[i],I))
+        if a['stabilize'].norm() < 1e-6:
+            print('    ',I,uc.cell.cart2frac(a['point']))#,uc.cell.cart2frac(a['stabilize']))
+
+for i in range(len(G)):
+    print('rotrans ',i)
+    print(relevant_rotrances(G[i]))
+ 
+for i in range(len(G)):
+    g = G[i]
+    a = analyze_rotrans(g)
+    #if a['type'] in ['screw axis','translation']:
+    #    continue
+    print(i,' ',a['type'])
+    print(a['stabilize'])
+    U,S,V = rotrans_svd(g)
+    #print('  ',rotrans_rinv(U,S,V)*g.T, a['point'], cell.cart2frac(a['point']))
+    #print('    ',cell.cart2frac(rotrans_rinv(U,S,V)*g.T))
+    #print('  ',-1e0*rotrans_axprj(U,S,V)*g.T, a['stabilize'])
+    print('    ',cell.cart2frac(-1e0*rotrans_axprj(U,S,V)*g.T))
+    print(a['point'])
+    print('    ',cell.cart2frac(rotrans_rinv(U,S,V)*g.T))
+    r,b = rotrans_normalize(g)
+    a = analyze_rotrans(r)
+    print(b, a['type'], a['point'], a['stabilize'])
+
+for i in range(len(G)):
+    r,b = rotrans_normalize(G[i])
+    if b:
+        i, analyze_rotrans(r)['point'],  analyze_rotrans(G[i])['point']
+
+        
+class quater1(object):
+    def __init__(self,a):
+        if a==1:
+            self.u=1
+            self.sgn=1
+        elif a==-1:
+            self.u=1
+            self.sgn=-1
+        elif a=='i':
+            self.i = 1
+            self.sgn=1
+        elif a=='-i':
+            self.i = 1
+            self.sgn=-1
+        elif a=='J':
+            self.J = 1
+            self.sgn=1
+        elif a=='-J':
+            self.J = 1
+            self.sgn=-1
+        elif a=='K':
+            self.K = 1
+            self.sgn=1
+        elif a=='-K':
+            self.K = 1
+            self.sgn=-1
+            
+        def mulfunc(self,X):
+            if (self.i and X.i) or(self.j and X.j) or (self.k and X.k):
+                sgn=-1
+                sgn*=self.sgn
+                sn*=X,sgn
+                return quater1(sgn)
+            elif self.i and X.j:
+                sgn=1
+                sgn*=self.sgn
+                sn*=X,sgn
+                a ='k'
+                if sgn==-1 :
+                    a='-k'
+                    return quater1(a)
+            elif self.j and X.k:                
+                sgn=1
+                sgn*=self.sgn
+                sn*=X,sgn
+                a ='k'
+                if sgn==-i :
+                    a='-i'
+                    return quater1(a)
+            elif self.i and X.u :
+                sgn=1
+                sgn*=self.sgn
+                sn*=X,sgn
+                return quater1(sgn)            
+      
+            

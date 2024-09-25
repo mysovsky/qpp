@@ -295,6 +295,133 @@ namespace qpp {
 
   }
 
+    
+  template<class REAL>
+  rotrans<REAL> rotrans_sub(const rotrans<REAL> & R1, const rotrans<REAL> & R2)
+  {
+    auto cell = R1.cell;
+    vector3<REAL> df = cell->cart2frac(R1.T - R2.T);
+    for (int i=0; i<3; i++)
+      df[i] -= round(df[i]);
+    return rotrans<REAL>(cell->frac2cart(df), R1.R - R2.R, cell);
+  }
+
+    
+  template<class REAL>
+  void rotrans_diff(REAL & rdiff, REAL & tdiff,
+		    const rotrans<REAL> & R1, const rotrans<REAL> & R2)
+  {
+    rotrans<REAL> dR = rotrans_sub( R1, R2);
+    rdiff = dR.R.norm();
+    tdiff = dR.T.norm();
+  }
+
+  
+  template<class REAL>
+  void fix4_cryst_group(array_group<rotrans<REAL> > & G, const static_table<int> & M){
+    int N = G.size();
+    static_table<rotrans<REAL> > F(N,N);
+
+    //std::cout << "fix4: alive 1\n";
+
+    for (int i=0; i<N; i++)
+      for (int j=0; j<N; j++){
+	F(i,j) = rotrans_sub(G[i]*G[j], G[M(i,j)]);
+          //std::cout << "Fij " << i << " " << j << " " << F(i,j) << "\n";
+        }
+
+    std::vector<rotrans<REAL> > Ginv(N);
+
+    for (int j=0; j<N; j++){
+      matrix3<REAL> S = G[j].R.inverse();
+      Ginv[j] = rotrans<REAL>(-1e0*S*G[j].T, S, G[0].cell);
+        //std::cout << j << " inv " << Ginv[j] << "\n";
+    }
+
+    //std::cout << "fix4: alive 2\n";
+
+    std::vector<rotrans<REAL> > Di(N);
+    for (int i=0; i<N; i++){
+
+      //std::cout << "Di " << i << "\n";
+      
+      rotrans<REAL> D(vector3<REAL>(0),G[0].cell);
+      for (int j=0; j<N; j++) {
+	rotrans<REAL> DD;
+	DD = Ginv[j]*F(j,i);
+	D.R += DD.R;
+	D.T += DD.T;
+	DD = F(i,j)*Ginv[j];
+	D.R += DD.R;
+	D.T += DD.T;	
+        //std::cout << i << " Di " << Di[i] << "\n";
+      }
+      D.R /= 2*N;
+      D.T /= 2*N;
+      Di[i] = D;
+
+    }
+
+    //std::cout << "fix4: alive 3\n";
+
+    for (int i=0; i<N; i++){
+
+        //std::cout << "unitarize " << i << "\n";
+
+        G[i].R = G[i].R - Di[i].R;
+        G[i].T = G[i].T - Di[i].T;
+
+        //std::cout << "new Gi " << i << " " << G[i] << "\n";
+
+        unitarize(G[i].R);
+
+        //std::cout << "unitarized "  << G[i] << "\n";
+      }
+    //std::cout << "fix4: alive 4\n";
+  }
+
+  
+  template<class REAL>
+  void reconstruct_cryst_group(array_group<rotrans<REAL> > & G,
+			       const static_table<int> & M){
+    auto cell = G[0].cell;
+
+    int maxit = 100;
+    int N = G.size();
+    int it = 0;
+    REAL reps = cell->tol_rot*N;
+    REAL teps = cell->tol_transl*N;
+    REAL rdiff, tdiff, rerr, terr;
+
+    std::cout << "reconstruct_cryst_group\n";
+
+    while (true) {
+
+      rerr = REAL(0);
+      terr = REAL(0);
+      for (int i=0; i<N; i++)
+	for (int j=0; j<N; j++){
+	  rotrans_diff(rdiff, tdiff, G[i]*G[j], G[M(i,j)]);
+	  rerr += rdiff*rdiff;
+	  terr += tdiff*tdiff;
+	}
+      rerr = std::sqrt(rerr);
+      terr = std::sqrt(terr);
+
+      std::cout << "fix_cryst_group: iteration = " << it << " rterror = " << rerr << " " << terr << "\n";
+
+      if (rerr < reps && terr < teps) break;      
+      fix4_cryst_group(G,M);
+      
+      //if (++it > maxit) OverflowError("Too many iterations in fix_point_group");
+      if (++it > maxit) {
+	std::cout << "Too many iterations in fix_point_group\n";
+	break;
+      }
+    }
+  }
+
+  
   /*! \brief Find the translation that turns 3D-periodic geometry g1 into g2
     @param[out] t the translation vectors
     @param[in] g1 initial geometry
@@ -325,7 +452,8 @@ namespace qpp {
     this operation is less than R
   */
   template<class REAL>
-  void find_cryst_symm(array_group<rotrans<REAL,true> > & G,
+  void find_cryst_symm(array_group<rotrans<REAL> > & G,
+		       std::vector<permutation> & P,
                        geometry<REAL,periodic_cell<REAL> > & geom,
                        REAL R = geometry<REAL,periodic_cell<REAL> >
                        ::tol_geom_default){
@@ -334,7 +462,11 @@ namespace qpp {
     array_group<matrix3<REAL> > B;
     bravais_point_group(B,geom.cell,R);
     G.group.clear();
-    G.group.push_back(rotrans<REAL,true>(matrix3<REAL>::unity, &geom.cell));
+    G.group.push_back(rotrans<REAL>(matrix3<REAL>::unity(), std::shared_ptr<periodic_cell<REAL> >(& geom.cell, [](periodic_cell<REAL>*){}) ));
+
+    //std::vector<permutation> P;
+    P.clear();
+    P.push_back(permutation(geom.nat()));
 
     for (int i = 0; i < B.size(); i++){
       geometry<REAL,periodic_cell<REAL> > geom1(geom);
@@ -345,31 +477,71 @@ namespace qpp {
 	  geom1.coord(j) = B[i]*geom1.coord(j);
 
       std::vector<vector3<REAL> > T;
-      std::vector<permutation> P;
+      std::vector<permutation> P1;
 
       //debug
-      //std::cout << "matrix " << B[i] << "\n";
-
-      find_translations(T, P, geom1, geom, geom.cell, R);
+      //std::cout << i << " matrix " << B[i] << "\n";
+      
+      find_translations(T, P1, geom1, geom, geom.cell, R);
+      //std::cout << "find_transl finished\n";
+      
       for (int j=0; j < T.size(); j++){
 	//std::cout << i << " " << j << "\n";
-	//int n = P[j].order();
-	rotrans<REAL,true> S(T[j],B[i], & geom.cell);
-	//G.group.push_back(S);
+	rotrans<REAL> S(T[j],B[i], std::shared_ptr<periodic_cell<REAL> >(& geom.cell, [](periodic_cell<REAL>*){}));
+	//int n = P1[j].order();
+	//std::cout << i << " " << T[j] << P1[j].to_string() << n << "\n";
+
+	int ng_was = G.size();
+	auto p = P1[j];
+	auto idx = std::find(P.begin(),P.end(),p);
+	if (idx==P.end()){
+	  P.push_back(p);
+	  G.group.push_back(S);	
+	}
 
 	//debug
-	//int ng_was = G.size();
 
-	G.generate(S);
-
-	/*
-	  std::cout << "new rotranses:\n";
-	  for (int ii =ng_was; ii<G.size(); ii++)
+	//G.add(S);
+	//G.add(S);
+	
+	std::cout << "new rotranses:\n" << G.size() << " " << P.size() << "\n";
+	for (int ii =ng_was; ii<G.size(); ii++)
 	  std::cout << ii << G[ii] << "\n";
-	*/
+	
+	
       }
     }
 
+    /*
+    std::cout << "Before complete group\n";
+    for (int j=0; j<P.size(); j++)
+      std::cout << P[j].to_string() << "\n";
+    */
+    std::cout << "Sizes:\n" << G.size() << " " << P.size() << "\n";
+    complete_group(G,P);
+    
+    std::cout << "After complete group\n";
+    std::cout << "Sizes:\n" << G.size() << " " << P.size() << "\n";
+
+    group_analyzer<permutation> AP(P);
+    static_table<int> multab(G.size(),G.size());
+    for (int i=0; i<G.size(); i++)
+      for (int j=0; j<G.size(); j++)
+	multab(i,j) = AP.multab(j,i);
+    
+    //reconstruct_cryst_group(G,multab);
+
+    std::cout << "After reconstruct group\n";
+
+  }
+
+  template<class REAL>
+  void find_cryst_symm(array_group<rotrans<REAL> > & G,
+                       geometry<REAL,periodic_cell<REAL> > & geom,
+                       REAL R = geometry<REAL,periodic_cell<REAL> >
+                       ::tol_geom_default){
+    std::vector<permutation>  P;
+    find_cryst_symm(G,P,geom,R);
   }
 
   /*! \brief Find the crystalline symmetry group
@@ -381,22 +553,22 @@ namespace qpp {
     this operation is less than R
   */
   template<class REAL>
-  void find_cryst_symm(genform_group<rotrans<REAL,true> > & G,
+  void find_cryst_symm(genform_group<rotrans<REAL> > & G,
                        geometry<REAL, periodic_cell<REAL> > & geom,
                        REAL R = geometry<REAL,periodic_cell<REAL>>::tol_geom_default){
-    array_group<rotrans<REAL,true> > G1;
+    array_group<rotrans<REAL> > G1;
     find_cryst_symm(G1,geom,R);
     generator_form(G,G1);
   }
 
   // ----------------------------------------------------------------------------
   
-  template <class REAL, bool BOUND>
-  std::vector< rotrans<REAL,false> > rotrans_circle(const rotrans<REAL,BOUND> & r, REAL eps)
+  template <class REAL>
+  std::vector< rotrans<REAL> > rotrans_circle(const rotrans<REAL> & r, REAL eps)
   {
-    rotrans<REAL,false> F(r.T,r.R),
+    rotrans<REAL> F(r.T,r.R),
       G = F;
-    std::vector< rotrans<REAL,false> > circle={G};
+    std::vector< rotrans<REAL> > circle={G};
     while ( (G.R - matrix3<REAL>::Identity()).norm() > eps )
       {
 	G = G*F;
@@ -406,7 +578,7 @@ namespace qpp {
   }
 
   template <class REAL>
-  std::vector< index > inspect_rotrans(const rotrans<REAL,true> & r, REAL eps)
+  std::vector< index > inspect_rotrans(const rotrans<REAL> & r, REAL eps)
   {
     std::vector<index> I = { index{1,0,0}, index{0,1,0}, index{0,0,1}, index{0,0,0} };
     matrix<REAL>  trns(3,4), cntr(3,4);
@@ -464,7 +636,7 @@ namespace qpp {
 
 
   template <class REAL>
-  std::vector<index> rotrans_grid( const rotrans<REAL,true> & r, const std::vector<index> & idx)
+  std::vector<index> rotrans_grid( const rotrans<REAL> & r, const std::vector<index> & idx)
   {
     int d = idx.size();
     rotrans<REAL> f = rotrans2frac(r);
@@ -526,9 +698,9 @@ namespace qpp {
   // ----------------------------------------------------------------------------
 
   template <class REAL>
-  std::vector<rotrans<REAL,true> > relevant_symmetries( const rotrans<REAL,true> & r, REAL eps){
+  std::vector<rotrans<REAL> > relevant_symmetries( const rotrans<REAL> & r, REAL eps){
     auto I = inspect_rotrans(r,eps);
-    std::vector<rotrans<REAL,true> > R;
+    std::vector<rotrans<REAL> > R;
     if (I.size()==0)
       return R;
     auto rr = rotrans_shift(r,I[0]);
@@ -576,7 +748,8 @@ namespace qpp {
       if (!belongs_to(b,A))
 	A.push_back(b);
   }
-  
+
+  /*
   template<class TRANSF>
   void complete_group(std::vector<TRANSF> & S){
     std::vector<TRANSF> N = S;
@@ -599,9 +772,10 @@ namespace qpp {
 	N = NN;
       }
   }
+  */
 
   template<class REAL>
-  int fps_find(const std::vector<highsymmsite<REAL, rotrans<REAL,true> > > & H,
+  int fps_find(const std::vector<highsymmsite<REAL, rotrans<REAL> > > & H,
 	       const subspace3<REAL> & s){
     int i;
     bool found = false;
@@ -617,9 +791,9 @@ namespace qpp {
   }
 
   template <class REAL>
-  void fps_new( std::vector<highsymmsite<REAL, rotrans<REAL,true> > > & H,
+  void fps_new( std::vector<highsymmsite<REAL, rotrans<REAL> > > & H,
 		const subspace3<REAL> & s,
-		const std::vector< rotrans<REAL,true> > & ops){
+		const std::vector< rotrans<REAL> > & ops){
     int i = fps_find(H,s);
     if (i>-1)
       for (const auto & g: ops)
@@ -627,12 +801,12 @@ namespace qpp {
 	  H[i].group.push_back(g);
 	}
     else
-      H.push_back(highsymmsite<REAL, rotrans<REAL,true> >(s,ops));
+      H.push_back(highsymmsite<REAL, rotrans<REAL> >(s,ops));
   }
 
   
   template<class REAL>
-  void fps_merge( std::vector<highsymmsite<REAL, rotrans<REAL,true> > > & H,
+  void fps_merge( std::vector<highsymmsite<REAL, rotrans<REAL> > > & H,
 		  int to, const std::vector<int> & from){
     for (int i:from)
       {
@@ -642,19 +816,19 @@ namespace qpp {
   }
 
   template<class REAL>
-  void fps_add( std::vector<highsymmsite<REAL, rotrans<REAL,true> > > & H,
+  void fps_add( std::vector<highsymmsite<REAL, rotrans<REAL> > > & H,
 		const subspace3<REAL> & s, int i1, int i2){
-    //std::vector< rotrans<REAL,true> > g(H[i1].group);
-    std::vector< rotrans<REAL,true> > g;
+    //std::vector< rotrans<REAL> > g(H[i1].group);
+    std::vector< rotrans<REAL> > g;
     //merge_to_set(g,H[i2].group);
     //g.insert(g.end(),H[i2].group.begin(), H[i2].group.end());
-    H.push_back( highsymmsite<REAL, rotrans<REAL,true> >(s,g) );
+    H.push_back( highsymmsite<REAL, rotrans<REAL> >(s,g) );
     H[i1].next.push_back(H.size()-1);
     H[i2].next.push_back(H.size()-1);      
   }
   
   template <class REAL>
-  index closest_rotrans(const rotrans<REAL,true> & g, const vector3<REAL> & r)
+  index closest_rotrans(const rotrans<REAL> & g, const vector3<REAL> & r)
   {
     vector3<REAL> t = r - g.R*r - g.T;
     t = g.cell->cart2frac(t);
@@ -683,10 +857,10 @@ namespace qpp {
   }
 
   template <class REAL>
-  void elementary_subspaces(std::vector<highsymmsite<REAL, rotrans<REAL,true> > > & H,
-			    const array_group<rotrans<REAL, true> > & G, REAL eps)
+  void elementary_subspaces(std::vector<highsymmsite<REAL, rotrans<REAL> > > & H,
+			    const array_group<rotrans<REAL> > & G, REAL eps)
   {
-    group_analyzer<rotrans<REAL,true>, array_group<rotrans<REAL, true> > > A(G);
+    group_analyzer<rotrans<REAL>, array_group<rotrans<REAL> > > A(G);
     //for (int g: A.abelian_division()){
     for (int g=1; g < G.size(); g++){
       auto rg = relevant_symmetries(G[g],eps);
@@ -709,7 +883,7 @@ namespace qpp {
 	auto g = G[i];
 	index C = closest_rotrans(g,r);
 	vector3<REAL> Tprime = g.T + C(0)*(*cell)(0) + C(1)*(*cell)(1) + C(2)*(*cell)(2);
-	rotrans<REAL,true> gprime(Tprime, g.R, cell);
+	rotrans<REAL> gprime(Tprime, g.R, cell);
 	subspace3<REAL> S = invariant_subspace(gprime);
 	if (S.dim == 3 || S.dim == -1)
 	  continue;
@@ -722,7 +896,7 @@ namespace qpp {
   }
   
   template <class REAL>
-  void fps_intersection(std::vector<highsymmsite<REAL, rotrans<REAL,true> > > & H,
+  void fps_intersection(std::vector<highsymmsite<REAL, rotrans<REAL> > > & H,
 			const periodic_cell<REAL> & cell,
 			int d1, int d2)
   {
@@ -757,13 +931,13 @@ namespace qpp {
   */
   //  template<class REAL, bool BOUND>
   template<class REAL>
-  void find_point_subgroups(std::vector<array_group<rotrans<REAL,true> > > & groups,
+  void find_point_subgroups(std::vector<array_group<rotrans<REAL> > > & groups,
 			    std::vector<subspace3<REAL> > & subspaces,
-			    const array_group<rotrans<REAL,true> > & G,
+			    const array_group<rotrans<REAL> > & G,
 			    REAL eps)
   {
     auto cell = G[0].cell;
-    std::vector<highsymmsite<REAL, rotrans<REAL,true> > > H;
+    std::vector<highsymmsite<REAL, rotrans<REAL> > > H;
     elementary_subspaces(H,G,eps);
     fps_intersection(H, *cell, 2, 2);
     fps_intersection(H, *cell, 2, 1);
@@ -823,7 +997,7 @@ namespace qpp {
 	  array_group<matrix3<REAL> > pg;
 	  for (auto const & g : H[i].group)
 	  pg.add(g.R);*/
-	  array_group<rotrans<REAL,true> > gg;
+	  array_group<rotrans<REAL> > gg;
 	  for (auto & g : H[i].group)
 	    gg.add(g);
 	  groups.push_back(gg);
@@ -836,9 +1010,9 @@ namespace qpp {
   for (int i=0; i<3; i++)
   cell8(i) *= 2;
     
-  array_group<rotrans<REAL,true> > G8("",rotrans<REAL,true>(matrix3<REAL>::unity, & cell8));
+  array_group<rotrans<REAL> > G8("",rotrans<REAL>(matrix3<REAL>::unity, & cell8));
 
-  //array_group<rotrans<REAL,true> > G8(G);
+  //array_group<rotrans<REAL> > G8(G);
 
   int N = G.size();
     
@@ -846,12 +1020,12 @@ namespace qpp {
   for (int i=0; i < N; i++)
   {
   std::cout << i << j << std::endl;
-  G8.add(rotrans<REAL,true>(G[0].cell->transform(G[i].T,j),G[i].R, & cell8));
+  G8.add(rotrans<REAL>(G[0].cell->transform(G[i].T,j),G[i].R, & cell8));
   }
       
   std::cout << "size= " << G8.size() << "\n";
-  //group_analyzer<rotrans<REAL,true>, array_group<rotrans<REAL,true> > > A(G8);
-  //group_analyzer<rotrans<REAL,true>, array_group<rotrans<REAL,true> > > B(G);
+  //group_analyzer<rotrans<REAL>, array_group<rotrans<REAL> > > A(G8);
+  //group_analyzer<rotrans<REAL>, array_group<rotrans<REAL> > > B(G);
   //auto C = double_group(double_group(double_group(B)));
 
   /*
@@ -863,7 +1037,7 @@ namespace qpp {
 
   // Form all possible invariant subspaces of abelian subgroups
   // Combine (multiply) subgroups with coinciding subspaces
-  std::vector<highsymmsite<REAL, rotrans<REAL,true> > > H;
+  std::vector<highsymmsite<REAL, rotrans<REAL> > > H;
   for (int i=0; i < G8.size(); i++)
   {
   auto s = invariant_subspace(G8[i]);
@@ -879,7 +1053,7 @@ namespace qpp {
   break;
   }
   if (!found)
-  H.push_back(highsymmsite<REAL, rotrans<REAL,true> >(s,{G8[i]}));
+  H.push_back(highsymmsite<REAL, rotrans<REAL> >(s,{G8[i]}));
   }
   //for (int i=0; i<H.size(); i++)
   //  complete_group(H[i].group);
@@ -942,17 +1116,17 @@ namespace qpp {
     void find_point_subgroups(std::vector<array_group<matrix3<REAL> > > & groups,
     std::vector<vector3<REAL> > &cntrs,
     std::vector<int> & dims,
-    const array_group<rotrans<REAL,false> > & G){}
+    const array_group<rotrans<REAL> > & G){}
   */
 
   /*
     template<class REAL>
     void find_point_subgroups1(std::vector<array_group<matrix3<REAL> > > & groups,
     std::vector<subspace3<REAL> > & subspaces,
-    const array_group<rotrans<REAL,false> > & G){
+    const array_group<rotrans<REAL> > & G){
     
     //std::vector<subspace3<REAL> > subspaces;
-    std::vector<std::vector<rotrans<REAL,false> > > elements;
+    std::vector<std::vector<rotrans<REAL> > > elements;
 
     //std::cout << "find_point_subs:\n";
 
@@ -1049,12 +1223,12 @@ namespace qpp {
     template<class REAL>
     void find_point_subgroups(std::vector<array_group<matrix3<REAL> > > & groups,
     std::vector<subspace3<REAL> > & subspaces,
-    const array_group<rotrans<REAL,true> > & G)
+    const array_group<rotrans<REAL> > & G)
     {
-    array_group<rotrans<REAL,false> > G1;
+    array_group<rotrans<REAL> > G1;
     G1.group.clear();
     for (const auto & x : G.group)
-    G1.group.push_back(rotrans<REAL,false>(x.T,x.R));
+    G1.group.push_back(rotrans<REAL>(x.T,x.R));
 
     find_point_subgroups(groups,subspaces,G1);
     }
@@ -1063,25 +1237,61 @@ namespace qpp {
 #if defined(PY_EXPORT) || defined(QPPCAD_PY_EXPORT)
 
   template<class REAL>
-  void py_find_cryst_symm1(array_group<rotrans<REAL,true> > & G,
+  void py_fix4_cryst_group(array_group<rotrans<REAL> > & G, const std::vector<std::vector<int> > & M){
+    int N = G.size();
+    static_table<int> MM(N,N);
+    for (int i=0; i<N; i++)
+      for (int j=0; j<N; j++)
+	MM(i,j) = M[i][j];
+    fix4_cryst_group(G,MM);
+  }
+
+  template<class REAL>
+  void py_reconstruct_cryst_group(array_group<rotrans<REAL> > & G,
+				  std::vector<permutation> & P){
+    group_analyzer<permutation> AP(P);
+    static_table<int> multab(G.size(),G.size());
+    for (int i=0; i<G.size(); i++)
+      for (int j=0; j<G.size(); j++)
+	multab(i,j) = AP.multab(j,i);
+    
+    reconstruct_cryst_group(G,multab);
+
+  }
+
+  
+  template<class REAL>
+  void py_find_cryst_symm1(array_group<rotrans<REAL> > & G,
+			   std::vector<permutation> &P,
                            geometry<REAL,periodic_cell<REAL> > & geom,
                            REAL R = geometry<REAL,periodic_cell<REAL>>
                            ::tol_geom_default)
-  {  find_cryst_symm(G,geom,R); }
+  {  find_cryst_symm(G,P,geom,R); }
 
   template<class REAL>
-  void py_find_cryst_symm2(genform_group<rotrans<REAL,true> > & G,
+  void py_find_cryst_symm2(genform_group<rotrans<REAL> > & G,
                            geometry<REAL, periodic_cell<REAL> > & geom,
                            REAL R = geometry<REAL,periodic_cell<REAL>>
                            ::tol_geom_default)
   { find_cryst_symm(G,geom,R); }
 
   template<class REAL>
+  py::object py_find_cryst_symm3( geometry<REAL, periodic_cell<REAL> > & geom,
+                           REAL R = geometry<REAL,periodic_cell<REAL>>
+                           ::tol_geom_default)
+  {
+    array_group<rotrans<REAL> >  * G = new array_group<rotrans<REAL> >;
+    std::vector<permutation> * P = new std::vector<permutation>;
+    find_cryst_symm(*G,*P,geom,R);
+    return py::make_tuple(*G,*P);
+  }
+  
+  template<class REAL>
   void py_find_point_subgroups(py::list & groups, py::list &subspaces,
-			       const array_group<rotrans<REAL,true> > & G,
+			       const array_group<rotrans<REAL> > & G,
 			       REAL eps){
     //std::vector<array_group<matrix3<REAL> > >  vgroups;
-    std::vector<array_group<rotrans<REAL,true> > >  vgroups;
+    std::vector<array_group<rotrans<REAL> > >  vgroups;
     std::vector<subspace3<REAL> > vsubspaces;
     find_point_subgroups(vgroups,vsubspaces,G,eps);
     for (int i = 0; i < vgroups.size(); i++){
@@ -1112,7 +1322,7 @@ namespace qpp {
   /*
     template<class REAL>
     void py_find_point_subgroups2(bp::list & subs, bp::list &cntrs,
-    const array_group<rotrans<REAL,true> > & G)
+    const array_group<rotrans<REAL> > & G)
     {
     std::vector<array_group<matrix3d<REAL> > >  vsubs;
     std::vector<vector3<REAL> > vcntrs;
@@ -1126,15 +1336,22 @@ namespace qpp {
   */
 
   template<class REAL>
-  py::list py_find_translations( geometry<REAL,periodic_cell<REAL> > & g1,
-                                 geometry<REAL,periodic_cell<REAL> > & g2,
-                                 const periodic_cell<REAL> &cell,
-                                 REAL R ){
+  py::object py_find_translations( geometry<REAL,periodic_cell<REAL> > & g1,
+				   geometry<REAL,periodic_cell<REAL> > & g2,
+				   const periodic_cell<REAL> &cell,
+				   REAL R,
+				   bool return_permut = false){
     std::vector<vector3<REAL> > t;
-    find_translations(t,g1,g2,cell,R);
-    py::list res;
+    std::vector<permutation> perm;
+    find_translations(t, perm, g1, g2, cell, R);
+    py::list transl;
+    py::object res;
     for (const auto & tt : t)
-      res.append(tt);
+      transl.append(tt);
+    if (return_permut)
+      res = py::make_tuple(transl,perm);
+    else
+      res = transl;
     return res;
   }
 

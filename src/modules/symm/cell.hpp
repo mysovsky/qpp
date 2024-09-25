@@ -57,215 +57,209 @@ namespace qpp {
   template<class REAL = double>
   struct periodic_cell {
 
-      //! \brief The dimension of periodicity
-      int DIM;
+    REAL tol_transl, tol_rot;
+    static  REAL tol_transl_default, tol_rot_default;
+    
+    //! \brief The dimension of periodicity
+    int DIM;
+    
+    std::vector<vector3<REAL>> v;
+    STRING_EX name;
 
-      vector3<REAL> *v;
-      STRING_EX name;
+    //! \brief Create periodic cell of dimension dim with zero
+    //!  translation vectors
+    periodic_cell (int dim = 0) {
+      DIM = dim;
+      tol_transl = tol_transl_default;
+      tol_rot = tol_rot_default;
+      if (DIM>0)
+	v.resize(DIM);
+      else
+	v.resize(0);
+    }
 
-      //! \brief Create periodic cell of dimension dim with zero
-      //!  translation vectors
-      periodic_cell (int dim = 0) {
-        DIM = dim;
-        if (DIM>0)
-          v = new vector3<REAL>[DIM];
-        else
-          v = nullptr;
-        for (int d=0; d<DIM; d++)
-          v[d] = vector3<REAL>::Zero();
-      }
+    //! \brief Copy constructor for periodic cell
+    periodic_cell (const periodic_cell<REAL> & cl) {
+      DIM = cl.DIM;
+      v = cl.v;
+    }
 
-      //! \brief Copy constructor for periodic cell
-      periodic_cell (const periodic_cell<REAL> & cl) {
-        DIM = cl.DIM;
-        if (DIM>0)
-          v = new vector3<REAL>[DIM];
-        else
-          v = nullptr;
-        for(int i=0; i<DIM; i++)
-          v[i] = cl.v[i];
-      }
-
-      ~periodic_cell() {
-        delete [] v;
-      }
-      /*! \brief Creates periodic cell of DIM==3 with given lattice
+    /*! \brief Creates periodic cell of DIM==3 with given lattice
      * constants and angles
-        @param a,b,c - lattice constants
-        @param alpha, beta, gamma - angles are in degrees!
+     @param a,b,c - lattice constants
+     @param alpha, beta, gamma - angles are in degrees!
     */
-      periodic_cell (REAL a, REAL b, REAL c, REAL alpha, REAL beta, REAL gamma) {
-        DIM = 3;
-        v = new vector3<REAL>[DIM];
-        alpha *= REAL(pi) / 180;
-        beta  *= REAL(pi) / 180;
-        gamma *= REAL(pi) / 180;
-        v[0] = vector3<REAL>(a,REAL(0),REAL(0));
-        v[1] = vector3<REAL>(b*std::cos(gamma), b*std::sin(gamma), REAL(0));
-        REAL nx = std::cos(beta);
-        REAL ny = (std::cos(alpha) - nx*std::cos(gamma))/std::sin(gamma);
-        REAL nz = std::sqrt(1-nx*nx-ny*ny);
-        v[2] = vector3<REAL>(nx,ny,nz)*c;
-      }
+    periodic_cell (REAL a, REAL b, REAL c, REAL alpha, REAL beta, REAL gamma) {
+      DIM = 3;
+      v.resize(3);
+      alpha *= REAL(pi) / 180;
+      beta  *= REAL(pi) / 180;
+      gamma *= REAL(pi) / 180;
+      v[0] = vector3<REAL>(a,REAL(0),REAL(0));
+      v[1] = vector3<REAL>(b*std::cos(gamma), b*std::sin(gamma), REAL(0));
+      REAL nx = std::cos(beta);
+      REAL ny = (std::cos(alpha) - nx*std::cos(gamma))/std::sin(gamma);
+      REAL nz = std::sqrt(1-nx*nx-ny*ny);
+      v[2] = vector3<REAL>(nx,ny,nz)*c;
+    }
 
-      /*! \brief Creates periodic cell with given translation vectors
-        @param a, b(optional), c(optional) - translation vectors.
-        If only one provided, the resulting cell has
-        DIM==1, if two provided, then DIM==2, and if all
-        three provided, you get DIM==3 periodic cell
+    /*! \brief Creates periodic cell with given translation vectors
+      @param a, b(optional), c(optional) - translation vectors.
+      If only one provided, the resulting cell has
+      DIM==1, if two provided, then DIM==2, and if all
+      three provided, you get DIM==3 periodic cell
     */
-      periodic_cell (vector3<REAL> a, vector3<REAL > b = 0, vector3<REAL> c = 0 ) {
+    periodic_cell (vector3<REAL> a, vector3<REAL > b = 0, vector3<REAL> c = 0 ) {
 
-        DIM = 1;
-        if ( b != vector3<REAL>::Zero() )
-          DIM = 2;
-        if ( c != vector3<REAL>::Zero() )
-          DIM = 3;
+      DIM = 1;
+      if ( b != vector3<REAL>::Zero() )
+	DIM = 2;
+      if ( c != vector3<REAL>::Zero() )
+	DIM = 3;
 
-        v = new vector3<REAL>[DIM];
+      v.resize(DIM);
+      if (DIM>0)
+	v[0] = a;
+      if (DIM>1)
+	v[1] = b;
+      if (DIM>2)
+	v[2] = c;
+    }
 
-        if (DIM>0)
-          v[0] = a;
-        if (DIM>1)
-          v[1] = b;
-        if (DIM>2)
-          v[2] = c;
-      }
+    index begin() const
+    {return index::D(DIM).all(-1);}
 
-      index begin() const
-      {return index::D(DIM).all(-1);}
+    index end() const
+    {return index::D(DIM).all(1); }
 
-      index end() const
-      {return index::D(DIM).all(1); }
+    vector3<REAL> cnt() const {
+      
+      vector3<REAL> ret_cnt{0};
+      for (int d=0; d<DIM; d++)
+	ret_cnt += v[d]*0.5;
+      return ret_cnt;
+      
+    }
 
-      vector3<REAL> cnt() const {
+    virtual vector3<REAL> transform(const vector3<REAL> & r, const index & I) const {
 
-        vector3<REAL> ret_cnt{0};
-        for (int d=0; d<DIM; d++)
-          ret_cnt += v[d]*0.5;
-        return ret_cnt;
+      vector3<REAL> r1 = r;
+      for (int d=0; d<DIM; d++)
+	r1 += v[d]*I(d);
+      return r1;
 
-      }
+    }
 
-      vector3<REAL> transform(const vector3<REAL> & r, const index & I) const {
-
-        vector3<REAL> r1 = r;
-        for (int d=0; d<DIM; d++)
-          r1 += v[d]*I(d);
-        return r1;
-
-      }
-
-      /*! \brief Answers the question whether r belongs to the unit cell
+    /*! \brief Answers the question whether r belongs to the unit cell
       defined as parallelepiped with one vertex in
       the coordinate origin
       the others are pointed by lattice vectors
     */
-      bool within(const vector3<REAL> & r) const {
+    virtual bool within(const vector3<REAL> & r) const {
 
-        vector3<REAL> f = cart2frac(r);
-        bool res = true;
-        for (int d=0; d<DIM; d++)
-          if (f(d)<REAL(0) || f(d) >= REAL(1)){
-              res = false;
-              break;
-            }
-        return res;
+      vector3<REAL> f = cart2frac(r);
+      bool res = true;
+      for (int d=0; d<DIM; d++)
+	if (f(d)<REAL(0) || f(d) >= REAL(1)){
+	  res = false;
+	  break;
+	}
+      return res;
+      
+    }
 
-      }
+    bool within_already_frac(const vector3<REAL> & r) const {
 
-      bool within_already_frac(const vector3<REAL> & r) const {
+      bool res = true;
+      for (int d=0; d<DIM; d++)
+	if ( r(d)<REAL(0) || r(d) >= REAL(1) ){
+	  res = false;
+	  break;
+	}
+      return res;
+      
+    }
 
-        bool res = true;
-        for (int d=0; d<DIM; d++)
-          if ( r(d)<REAL(0) || r(d) >= REAL(1) ){
-              res = false;
-              break;
-            }
-        return res;
+    bool within_epsilon_b(const vector3<REAL> & r, const REAL eps) const {
 
-      }
+      vector3<REAL> f = cart2frac(r);
+      bool res = true;
+      for (int d=0; d<DIM; d++)
+	if ( (f[d] < -eps) || (f[d] > 1 + eps)){
+	  res = false;
+	  break;
+	}
+      return res;
 
-      bool within_epsilon_b(const vector3<REAL> & r, const REAL eps) const {
+    }
 
-        vector3<REAL> f = cart2frac(r);
-        bool res = true;
-        for (int d=0; d<DIM; d++)
-          if ( (f[d] < -eps) || (f[d] > 1 + eps)){
-              res = false;
-              break;
-            }
-        return res;
-
-      }
-
-      /*! \brief Brings the point r into the volume of unit cell by translations
-       unit cell is defined as parallelepiped with one vertex in
-       the coordinate origin
-       the others are pointed by lattice vectors
+    /*! \brief Brings the point r into the volume of unit cell by translations
+      unit cell is defined as parallelepiped with one vertex in
+      the coordinate origin
+      the others are pointed by lattice vectors
     */
-      vector3<REAL> reduce(const vector3<REAL> & r) const {
+    vector3<REAL> reduce(const vector3<REAL> & r) const {
 
-        vector3<REAL> f = cart2frac(r);
-        for (int d=0; d<DIM; d++)
-          f(d) -= floor(f(d));
-        return frac2cart(f);
+      vector3<REAL> f = cart2frac(r);
+      for (int d=0; d<DIM; d++)
+	f(d) -= floor(f(d));
+      return frac2cart(f);
 
-      }
+    }
 
-      /*! \brief find high symmetry point within "radius" distance from given point "r"
+    /*! \brief find high symmetry point within "radius" distance from given point "r"
       makes sence for rotational symmetries
     */
-      vector3<REAL> symmetrize(const vector3<REAL> & r, REAL radius) const {
-        return r;
-      }
+    vector3<REAL> symmetrize(const vector3<REAL> & r, REAL radius) const {
+      return r;
+    }
 
-      /*! \brief fractional to cartesian  transformation
-       makes sence only for periodic translational cells
-       @param[in] r The fractional coordinates. In the case DIM==2 the third coordinate ( z=r(2) ) is
-       orthogonal to both translation vectors
-       @return Cartesian coordinates
+    /*! \brief fractional to cartesian  transformation
+      makes sence only for periodic translational cells
+      @param[in] r The fractional coordinates. In the case DIM==2 the third coordinate ( z=r(2) ) is
+      orthogonal to both translation vectors
+      @return Cartesian coordinates
     */
-      vector3<REAL> frac2cart(const vector3<REAL> & r) const {
+    vector3<REAL> frac2cart(const vector3<REAL> & r) const {
 
-        vector3<REAL> res = vector3<REAL>::Zero();
-        for (int i=0; i<DIM; i++)
-          res += r(i)*v[i];
+      vector3<REAL> res = vector3<REAL>::Zero();
+      for (int i=0; i<DIM; i++)
+	res += r(i)*v[i];
 
-        if (DIM==2){
-            vector3<REAL> n12 = v[0].cross(v[1]);
-            n12 = n12.normalized();
-            res += r(2)*n12;
-          }
-
-        return res;
-
+      if (DIM==2){
+	vector3<REAL> n12 = v[0].cross(v[1]);
+	n12 = n12.normalized();
+	res += r(2)*n12;
       }
 
-      /*! \brief cartesian to fractional transformation,
-       works for DIM==3 and DIM==2
-       @param[in] r  Fartesian coordinates
-       @return Fractional coordinates. In the case DIM==2 the third
-       coordinate ( z=f(2) ) is
-       orthogonal to both translation vectors
+      return res;
+
+    }
+
+    /*! \brief cartesian to fractional transformation,
+      works for DIM==3 and DIM==2
+      @param[in] r  Fartesian coordinates
+      @return Fractional coordinates. In the case DIM==2 the third
+      coordinate ( z=f(2) ) is
+      orthogonal to both translation vectors
     */
-      vector3<REAL> cart2frac(const vector3<REAL> & r) const {
+    virtual vector3<REAL> cart2frac(const vector3<REAL> & r) const {
 
-        vector3<REAL> v2;
-        if (DIM==3)
-          v2 = v[2];
-        else if (DIM==2){
-            v2 = v[0].cross(v[1]);
-            v2 /= v2.norm();
-          }
-
-        matrix3<REAL> A;
-        A.col(0) = v[0];
-        A.col(1) = v[1];
-        A.col(2) = v2;
-        return solve3(A, r);
-
+      vector3<REAL> v2;
+      if (DIM==3)
+	v2 = v[2];
+      else if (DIM==2){
+	v2 = v[0].cross(v[1]);
+	v2 /= v2.norm();
       }
+
+      matrix3<REAL> A;
+      A.col(0) = v[0];
+      A.col(1) = v[1];
+      A.col(2) = v2;
+      return solve3(A, r);
+
+    }
 
       // -----------------------------------------------------------------------
 

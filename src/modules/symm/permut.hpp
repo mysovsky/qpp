@@ -87,8 +87,13 @@ namespace qpp {
 
       int order () {
         int n=1;
+	std::cout << n << " " << to_string() << "\n";
         permutation P = (*this)*(*this);
-        while (*this != P) n++;
+        while (*this != P) {
+	  std::cout << n << " " << P.to_string() << "\n";
+	  n++;
+	  P = P*(*this);
+	}
         return n;
       }
 

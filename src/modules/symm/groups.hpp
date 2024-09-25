@@ -79,7 +79,7 @@ namespace qpp {
 
       TRANSFORM operator()(const index & n) const {
         if (DIM==0)
-          return TRANSFORM::unity;
+          return TRANSFORM::unity();
 
         //TRANSFORM A = pow(generators[0],n(0));
         TRANSFORM A = generators[0].pow(n(0));
@@ -102,7 +102,7 @@ namespace qpp {
         const TRANSFORM & g = generators[d];
         TRANSFORM a = g;
         int n=1;
-        while (a != TRANSFORM::unity){
+        while (a != TRANSFORM::unity() ){
             a = a*g;
             n++;
           }
@@ -160,7 +160,7 @@ namespace qpp {
       }
 
       array_group(const STRING_EX & _name="",
-                  TRANSFORM E = TRANSFORM::unity) {
+                  TRANSFORM E = TRANSFORM::unity()) {
         name = _name;
         group.push_back(E);
         lim_size = default_lim_size;
@@ -254,7 +254,7 @@ namespace qpp {
         py::class_<array_group<TRANSFORM>, std::shared_ptr<array_group<TRANSFORM> > >(m, pyname)
             .def(py::init<const STRING_EX &, TRANSFORM>(),
                  py::arg("_name") = "",
-                 py::arg("E") = TRANSFORM::unity )
+                 py::arg("E") = TRANSFORM::unity() )
             .def(py::init<const array_group<TRANSFORM> &>())
             .def("index",  & array_group<TRANSFORM>::index )
             .def("add",    & array_group<TRANSFORM>::add )

@@ -4,6 +4,7 @@
 #include <symm/group_theory.hpp>
 #include <iostream>
 #include <ctime>
+#include <memory> 
 
 using namespace qpp;
 
@@ -12,14 +13,16 @@ int main()
   periodic_cell<double> cl({4,0,0}, {0,4,0}, {0,0,4});
   std::cout << cl.DIM << std::endl;
   std::cout << cl << std::endl;
+  
+  auto scl = std::shared_ptr<periodic_cell<double>>(&cl, [](periodic_cell<double> *) {});
 
-  rotrans<double,true>
-    E(vector3<double>(0,0,0),&cl),
-    T1(vector3<double>(2,0,0),&cl),
-    T2(vector3<double>(0,2,0),&cl),
-    T3(vector3<double>(0,0,2),&cl),
-    C4x(RotMtrx({1,0,0},qpp::pi/2),&cl),
-    C4y(RotMtrx({0,1,0},qpp::pi/2),&cl);
+  rotrans<double>
+    E(vector3<double>(0,0,0),scl),
+    T1(vector3<double>(2,0,0),scl),
+    T2(vector3<double>(0,2,0),scl),
+    T3(vector3<double>(0,0,2),scl),
+    C4x(RotMtrx({1,0,0},qpp::pi/2),scl),
+    C4y(RotMtrx({0,1,0},qpp::pi/2),scl);
 
   array_group<decltype(T1)> cbc("",E);
 
@@ -42,7 +45,7 @@ int main()
   std::cout << clock() << " " << CLOCKS_PER_SEC << " " << 1e0*clock()/ CLOCKS_PER_SEC << std::endl;
   std::cout << "multab\n";
 
-  group_analyzer<rotrans<double,true>,  array_group<rotrans<double,true> > > acbc(cbc);
+  group_analyzer<rotrans<double>,  array_group<rotrans<double> > > acbc(cbc);
   std::cout << clock() << " " << CLOCKS_PER_SEC << " " << 1e0*clock()/ CLOCKS_PER_SEC << std::endl;
 
 
@@ -74,7 +77,7 @@ int main()
   std::cout << std::endl;
 
   group_characters<std::complex<double>,
-      rotrans<double,true>,  array_group<rotrans<double,true> > > chi(cbc,acbc);
+      rotrans<double>,  array_group<rotrans<double> > > chi(cbc,acbc);
 
   std::cout << clock() << " " << CLOCKS_PER_SEC << " " << 1e0*clock()/ CLOCKS_PER_SEC << std::endl;
   std::cout << "N IRREP = " << chi.nirrep << std::endl;

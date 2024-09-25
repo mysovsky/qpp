@@ -160,7 +160,7 @@ namespace qpp {
             REAL q = std::stod(splt[4].data());
             geom.add(s1,x,y,z);
             geom.template xfield<REAL>(xgeom_charge_field_idx, i) = q;
-          }
+	}
       }
   }
 

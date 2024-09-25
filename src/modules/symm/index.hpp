@@ -47,10 +47,22 @@ namespace qpp {
       inline operator int () const {return idx[0];}
 
       //! The d-th component of the index
-      inline int operator () (int d) const {return idx[d];}
+      inline int operator () (int d) const {
+	if (d<0)
+	  d+=DIM;
+	if (d<0 || d>=DIM)
+	  IndexError("qpp::index: out of range");
+	return idx[d];
+      }
 
       //! The d-th component of the index
-      inline int& operator () (int d) {return idx[d];}
+      inline int& operator () (int d) {
+	if (d<0)
+	  d+=DIM;
+	if (d<0 || d>=DIM)
+	  IndexError("qpp::index: out of range");
+	return idx[d];
+      }
 
       //! Typecast from integer: the 0th component of index is set to i, the rest is set to 0
       inline index& operator= (int i) {
@@ -262,12 +274,18 @@ namespace qpp {
       // --------------- PYTHON -------------------------------
 
       int py_getitem(int d) const{
-
-        return idx[d];
+	if (d<0)
+	  d+=DIM;
+	if (d<0 || d>=DIM)
+	  IndexError("qpp::index: out of range");
+	return idx[d];
       }
 
       void py_setitem(int d, int v){
-
+	if (d<0)
+	  d+=DIM;
+	if (d<0 || d>=DIM)
+	  IndexError("qpp::index: out of range");
         idx[d] = v;
       }
 

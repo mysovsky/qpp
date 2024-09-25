@@ -59,53 +59,53 @@ namespace qpp{
 
 #endif
 
-  void IndexError(const char * msg) {
+  void IndexError(const STRING_EX & msg) {
 #if defined(PY_EXPORT) || defined(QPPCAD_PY_EXPORT)
-    PyIndexError(msg);
+    PyIndexError(msg.c_str());
 #else
-    throw std::out_of_range(msg);
+    throw std::out_of_range(msg.c_str());
 #endif
   }
 
-  void TypeError(const char * msg) {
+  void TypeError(const STRING_EX & msg) {
 #if defined(PY_EXPORT) || defined(QPPCAD_PY_EXPORT)
-    PyTypeError(msg);
+    PyTypeError(msg.c_str());
 #else
-    throw std::invalid_argument(msg);
+    throw std::invalid_argument(msg.c_str());
 #endif
   }
 
-  void KeyError(const char * msg) {
+  void KeyError(const STRING_EX & msg) {
 #if defined(PY_EXPORT) || defined(QPPCAD_PY_EXPORT)
-    PyKeyError(msg);
+    PyKeyError(msg.c_str());
 #else
-    throw std::range_error(msg);
+    throw std::range_error(msg.c_str());
 #endif
   }
 
-  void ValueError(const char * msg) {
+  void ValueError(const STRING_EX & msg) {
 #if defined(PY_EXPORT) || defined(QPPCAD_PY_EXPORT)
-    PyValueError(msg);
+    PyValueError(msg.c_str());
 #else
-    throw std::domain_error(msg);
+    throw std::domain_error(msg.c_str());
 #endif
   }
 
-  void OverflowError(const char * msg)
+  void OverflowError(const STRING_EX & msg)
   {
 #if defined(PY_EXPORT) || defined(QPPCAD_PY_EXPORT)
-    PyOverflowError(msg);
+    PyOverflowError(msg.c_str());
 #else
-    throw std::overflow_error(msg);
+    throw std::overflow_error(msg.c_str());
 #endif
   }
 
-  void SyntaxError(const char * msg)
+  void SyntaxError(const STRING_EX & msg)
   {
 #if defined(PY_EXPORT) || defined(QPPCAD_PY_EXPORT)
-    PySyntaxError(msg);
+    PySyntaxError(msg.c_str());
 #else
-    throw std::runtime_error(msg);
+    throw std::runtime_error(msg.c_str());
 #endif
   }
 

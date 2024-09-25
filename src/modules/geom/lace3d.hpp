@@ -75,7 +75,9 @@ class generic_matrix : public Eigen::Matrix<VALTYPE, N, M >,
 public:
 
   static typename numeric_type<VALTYPE>::norm tol_equiv;
-  static generic_matrix unity;
+  static generic_matrix unity(){
+    return generic_matrix<VALTYPE, N, M>::Identity();	
+  }
 
   static typename numeric_type<VALTYPE>::norm tol_equiv_default(){
 
@@ -880,9 +882,8 @@ template<> float generic_matrix<float, 3,1>::tol_equiv = 1e-10;
 template<> double generic_matrix<double, 3,1>::tol_equiv = 1e-5;
 */
 
-    template<class VALTYPE, int N, int M>
-    generic_matrix<VALTYPE, N, M> generic_matrix<VALTYPE, N, M>::unity =
-    generic_matrix<VALTYPE, N, M>::Identity();
+  //template<class VALTYPE, int N, int M>
+    //    generic_matrix<VALTYPE, N, M> generic_matrix<VALTYPE, N, M>::unity  =
 
 // ------------------------------------------------------------------------------
 

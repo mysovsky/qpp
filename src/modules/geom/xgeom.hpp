@@ -159,7 +159,7 @@ namespace qpp {
 
         if (fn.size() != ft.size() || fn.size()
             != _nxstring + _nxreal + _nxint + _nxbool){
-            throw std::invalid_argument("xgeometry::format: field names or types mismatch");
+            TypeError("xgeometry::format: field names or types mismatch");
           }
 
         _nfields = ft.size();
@@ -194,7 +194,7 @@ namespace qpp {
             else if ( tp == type_bool )
               _field_idx[j] = ib++;
             else {
-                throw std::invalid_argument("xgeometry::format: invalid type");
+                TypeError("xgeometry::format: invalid type");
               }
 
           }
@@ -243,7 +243,7 @@ namespace qpp {
           _field_additive[ix_charge] = true;
 
         if (ix_atom == -1 || ix_x == -1 || ix_y == -1 || ix_z == -1) {
-            throw std::invalid_argument(
+            TypeError(
                   "xgeometry::format: the geometry does not have either atom names,"
                   " x, y, or z coordinates");
           }
@@ -288,8 +288,8 @@ namespace qpp {
       T & xfield(int i, int j) {
 
 	if (i<-1 || i>=nfields())
-	  throw std::invalid_argument("xgeometry::xfield - wrong field " + t2s(i) +
-				      " of type " + t2s(attributes<T>::type));
+	  TypeError("xgeometry::xfield - wrong field " + t2s(i) +
+			  " of type " + t2s(attributes<T>::type));
 	
 	if (i==-1)
 	  // xfield number -1 is shadow and used for selective visibility
@@ -301,7 +301,7 @@ namespace qpp {
           ft = attributes<REAL>::type;
 
         if (attributes<T>::type != ft)
-          throw std::invalid_argument("xgeometry::xfield - wrong type for the field " + t2s(i));
+          TypeError("xgeometry::xfield - wrong type for the field " + t2s(i));
 
         if (attributes<T>::type == type_string){
             if (i==ix_atom)
@@ -324,7 +324,7 @@ namespace qpp {
               return convert<T&,REAL&>::get(_xreal[_field_idx[i]][j]);
           }
         else
-          throw std::invalid_argument("Illegal type of xgeometry extra field");
+          TypeError("Illegal type of xgeometry extra field");
 
       }
 
@@ -332,8 +332,8 @@ namespace qpp {
       inline T xfield(int i, int j) const {
 
 	if (i<-1 || i>=nfields())
-	  throw std::invalid_argument("xgeometry::xfield - wrong field " + t2s(i) +
-				      " of type " + t2s(attributes<T>::type));
+	  TypeError("xgeometry::xfield - wrong field " + t2s(i) +
+			  " of type " + t2s(attributes<T>::type));
 	
 	if (i==-1)
 	  // xfield number -1 is shadow and used for selective visibility
@@ -345,8 +345,7 @@ namespace qpp {
           ft = attributes<REAL>::type;
 
         if (attributes<T>::type != ft)
-          throw std::invalid_argument(
-              "xgeometry::xfield - wrong type for the field " + t2s(i));
+          TypeError("xgeometry::xfield - wrong type for the field " + t2s(i));
 
         if (attributes<T>::type == type_string){
             if (i==ix_atom)
@@ -369,7 +368,7 @@ namespace qpp {
               return convert<T,REAL>::get(_xreal[_field_idx[i]][j]);
           }
         else
-          throw std::invalid_argument("Illegal type of xgeometry extra field");
+          TypeError("Illegal type of xgeometry extra field");
 
       }
 
@@ -382,7 +381,7 @@ namespace qpp {
         if (i<nfields())
           return xfield<T>(i,j);
         else {
-            throw std::invalid_argument("Field not found in xgeometry");
+            KeyError("Field not found in xgeometry");
           }
 
       }
@@ -396,7 +395,7 @@ namespace qpp {
         if (i<nfields())
           return xfield<T>(i,j);
         else{
-            throw std::invalid_argument("Field not found in xgeometry");
+            KeyError("Field not found in xgeometry");
           }
 
       }
@@ -407,7 +406,7 @@ namespace qpp {
 
         if (j < 0) j += nat();
         if (j < 0 || j >= nat())
-          throw std::invalid_argument("xgeometry::py_getitem: index out of range");
+          IndexError("xgeometry::py_getitem: index out of range");
 
         v.resize(nfields());
         for (int i=0; i<nfields(); i++){
@@ -427,9 +426,9 @@ namespace qpp {
 
         if (j < 0) j += nat();
         if (j < 0 || j >= nat())
-          throw std::invalid_argument("xgeometry::set_fields: index out of range");
+          IndexError("xgeometry::set_fields: index out of range");
         if (v.size()!=nfields())
-          throw std::invalid_argument("xgeometry::set_fields: wrong number of fields");
+          IndexError("xgeometry::set_fields: wrong number of fields");
 
         STRING_EX a1 = v[ix_atom].template get<STRING_EX>();
         vector3<REAL> r1(v[ix_x].template get<REAL>(),
@@ -769,13 +768,13 @@ namespace qpp {
 
         if (i < 0) i += nat();
         if (i < 0 || i >= nat())
-          throw std::invalid_argument("xgeometry::py_getitem: index out of range");
+          IndexError("xgeometry::py_getitem: index out of range");
 
         if (ix_charge >= 0)
           return _xreal[_field_idx[ix_charge]][i];
         else
-          throw std::runtime_error("\"charge\" field is requested for the geometry which"
-                                   " does not have charges");
+          KeyError("\"charge\" field is requested for the geometry which"
+			 " does not have charges");
 
       }
 
@@ -783,13 +782,13 @@ namespace qpp {
 
         if (i < 0) i+=nat();
         if (i < 0 || i>= nat())
-          throw std::invalid_argument("xgeometry::py_getitem: index out of range");
+          IndexError("xgeometry::py_getitem: index out of range");
 
         if (ix_charge >= 0)
           return _xreal[_field_idx[ix_charge]][i];
         else
-          throw std::runtime_error("\"charge\" field is requested for the geometry "
-                                   "which does not have charges");
+          KeyError("\"charge\" field is requested for the geometry "
+			 "which does not have charges");
 
       }
 
@@ -801,13 +800,13 @@ namespace qpp {
 
         if (i < 0) i += nat();
         if (i < 0 || i >= nat())
-          throw std::invalid_argument("xgeometry::py_getitem: index out of range");
+          IndexError("xgeometry::py_getitem: index out of range");
 
         if (ix_number >= 0)
           return _xint[_field_idx[ix_number]][i];
         else
-          throw std::runtime_error("\"number\" field is requested for the geometry "
-                                   "which does not have numbers");
+          TypeError("\"number\" field is requested for the geometry "
+			  "which does not have numbers");
 
       }
 
@@ -815,13 +814,13 @@ namespace qpp {
 
         if (i < 0) i += nat();
         if (i < 0 || i >= nat())
-          throw std::invalid_argument("xgeometry::py_getitem: index out of range");
+          IndexError("xgeometry::py_getitem: index out of range");
 
         if (ix_number >= 0)
           return _xint[_field_idx[ix_number]][i];
         else
-          throw std::runtime_error("\"number\" field is requested for the geometry "
-                                   "which does not have numbers");
+          KeyError("\"number\" field is requested for the geometry "
+			 "which does not have numbers");
 
       }
 
@@ -834,13 +833,13 @@ namespace qpp {
 
         if (i < 0) i+=nat();
         if (i < 0 || i>= nat())
-          throw std::invalid_argument("xgeometry::py_getitem: index out of range");
+          IndexError("xgeometry::py_getitem: index out of range");
 
         if (ix_mass >= 0)
           return _xreal[_field_idx[ix_mass]][i];
         else
-          throw std::runtime_error("\"mass\" field is requested for the geometry"
-                                   " which does not have masses");
+          KeyError("\"mass\" field is requested for the geometry"
+			 " which does not have masses");
 
       }
 
@@ -848,13 +847,13 @@ namespace qpp {
 
         if (i < 0) i+=nat();
         if (i < 0 || i>= nat())
-          throw std::invalid_argument("xgeometry::py_getitem: index out of range");
+          IndexError("xgeometry::py_getitem: index out of range");
 
         if (ix_mass >= 0)
           return _xreal[_field_idx[ix_mass]][i];
         else
-          throw std::runtime_error("\"mass\" field is requested for the geometry"
-                                   " which does not have masses");
+           KeyError("\"mass\" field is requested for the geometry"
+			  " which does not have masses");
 
       }
 
@@ -870,13 +869,13 @@ namespace qpp {
 
         for (int i=0; i<py::len(f); i++) {
             if (!py::isinstance<py::tuple>(f[i]))
-              throw std::invalid_argument("In xgeometry constructor - bad format list");
+              TypeError("In xgeometry constructor - bad format list");
 
             py::tuple t = py::cast<py::tuple>(f[i]);
 
             if (py::len(t)!=2 || !py::isinstance<py::str>(t[0]) ||
                 !py::isinstance<py::str>(t[1]))
-              throw std::invalid_argument("In xgeometry constructor - bad format list");
+              TypeError("In xgeometry constructor - bad format list");
 
             fn.push_back(py::cast<STRING_EX>(t[0]));
             STRING_EX s = py::cast<STRING_EX>(t[1]);
@@ -885,7 +884,7 @@ namespace qpp {
             else if (s=="real" || s == "r") ft.push_back(type_real);
             else if (s=="int" || s == "i")  ft.push_back(type_int);
             else if (s=="bool" || s == "b") ft.push_back(type_bool);
-            else throw std::invalid_argument("In xgeometry constructor - bad field type");
+            else TypeError("In xgeometry constructor - bad field type");
           }
 
         set_format(fn,ft);
@@ -896,7 +895,7 @@ namespace qpp {
 
         if (j<0) j+=nat();
         if (j<0 || j>= nat())
-          throw std::invalid_argument("xgeometry::py_getitem: index out of range");
+          IndexError("xgeometry::py_getitem: index out of range");
         py::list l;
 
         for (int i=0; i<nfields(); i++){
@@ -917,29 +916,29 @@ namespace qpp {
       virtual void py_setitem(int j, const py::list & l) {
 
         if (j<0) j+=nat();
-        if (j<0 || j>= nat()) throw std::invalid_argument("xgeometry:: index out of range");
+        if (j<0 || j>= nat()) IndexError("xgeometry:: index out of range");
         if (py::len(l) != nfields())
-          throw std::invalid_argument("xgeometry:: bad list of fields");
+          TypeError("xgeometry:: bad list of fields");
 
         for (int i=0; i<nfields(); i++){
             if (field_type(i)==type_string){
                 if (!py::isinstance<py::str>(l[i]))
-                  throw std::invalid_argument("xgeometry:: bad list of fields");
+                  TypeError("xgeometry:: bad list of fields");
                 xfield<STRING_EX>(i,j) = py::cast<STRING_EX>(l[i]);
               }
             else if (field_type(i)==type_real){
                 if (!py::isinstance<py::float_>(l[i]))
-                  throw std::invalid_argument("xgeometry:: bad list of fields");
+                  TypeError("xgeometry:: bad list of fields");
                 xfield<REAL>(i,j) = py::cast<REAL>(l[i]);
               }
             else if (field_type(i)==type_int){
                 if (!py::isinstance<py::int_>(l[i]))
-                  throw std::invalid_argument("xgeometry:: bad list of fields");
+                  TypeError("xgeometry:: bad list of fields");
                 xfield<int>(i,j) = py::cast<int>(l[i]);
               }
             else if (field_type(i)==type_bool){
                 if (!py::isinstance<py::bool_>(l[i]))
-                  throw std::invalid_argument("xgeometry:: bad list of fields");
+                  TypeError("xgeometry:: bad list of fields");
                 xfield<bool>(i,j) = py::cast<bool>(l[i]);
               }
           }
@@ -947,23 +946,23 @@ namespace qpp {
       }
 
       py::object py_getfield1(int i) {
-        throw std::invalid_argument("xgeometry::field accepts 2 indicies");
+        TypeError("xgeometry::field accepts 2 indicies");
         return py::none();
       }
 
       void py_setfield1(int i, const py::object & o) {
-        throw std::invalid_argument("xgeometry::field accepts 2 indicies");
+        TypeError("xgeometry::field accepts 2 indicies");
       }
 
       py::object py_getfield(int i, int j) {
 
         if (i<0) i += nfields();
         if (i<0 || i >= nfields())
-          throw std::invalid_argument("xgeometry: field index out of range");
+          IndexError("xgeometry: field index out of range");
 
         if (j<0) j+= nat();
         if (j<0 || j>=nat())
-          throw std::invalid_argument("xgeometry: atom index out of range");
+          IndexError("xgeometry: atom index out of range");
 
         if (field_type(i)==type_string)
           return py::cast(xfield<STRING_EX>(i,j));
@@ -980,31 +979,31 @@ namespace qpp {
 
         if (i<0) i += nfields();
         if (i<0 || i >= nfields())
-          throw std::invalid_argument("xgeometry: field index out of range");
+          IndexError("xgeometry: field index out of range");
 
         if (j<0) j+= nat();
         if (j<0 || j>=nat())
-          throw std::invalid_argument("xgeometry: atom index out of range");
+          IndexError("xgeometry: atom index out of range");
 
         basic_types t = field_type(i);
         if (t==type_string){
             if ( !py::isinstance<py::str>(o))
-              throw std::invalid_argument("xgeometry: string value of the field expected");
+              TypeError("xgeometry: string value of the field expected");
             xfield<STRING_EX>(i,j) = py::cast<STRING_EX>(o);
           }
         else if (t==type_real){
             if ( !py::isinstance<py::float_>(o))
-              throw std::invalid_argument("xgeometry: real value of the field expected");
+              TypeError("xgeometry: real value of the field expected");
             xfield<REAL>(i,j) = py::cast<REAL>(o);
           }
         else if (t==type_int){
             if ( !py::isinstance<py::int_>(o))
-              throw std::invalid_argument("xgeometry: int value of the field expected");
+              TypeError("xgeometry: int value of the field expected");
             xfield<int>(i,j) = py::cast<int>(o);
           }
         else if (t==type_bool){
             if ( !py::isinstance<py::bool_>(o))
-              throw std::invalid_argument("xgeometry: bool value of the field expected");
+              TypeError("xgeometry: bool value of the field expected");
             xfield<bool>(i,j) = py::cast<bool>(o);
           }
 
@@ -1017,7 +1016,7 @@ namespace qpp {
 
         if (i<0) i += nfields();
         if (i<0 || i >= nfields())
-          throw std::invalid_argument("xgeometry: field index out of range");
+          IndexError("xgeometry: field index out of range");
         return additive(i);
 
       }
@@ -1026,7 +1025,7 @@ namespace qpp {
 
         if (i<0) i += nfields();
         if (i<0 || i >= nfields())
-          throw std::invalid_argument("xgeometry: field index out of range");
+          IndexError("xgeometry: field index out of range");
         additive(i) = a;
 
       }

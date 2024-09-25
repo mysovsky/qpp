@@ -4,6 +4,7 @@ set(M_SRC
     data/types.cpp
     data/ptable.cpp
     symm/index.cpp
+    symm/cell.cpp
     io/strfun.cpp)
 
 add_library(qpp ${M_SRC})

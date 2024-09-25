@@ -42,7 +42,7 @@ TEST_CASE( "Basic matrix3<T> tests", "[vector3<T>]" ) {
   m3f m1_m = {{-1.0f, 0.0f, 0.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f, -1.0f}};
 
   //testing unity
-  REQUIRE (m1 == m3f::unity);
+  REQUIRE (m1 == m3f::unity());
 
   //testing matrix summation
   REQUIRE( m3f(m1+m1_m) == m3f(m3f::Zero()) );
@@ -185,7 +185,7 @@ TEST_CASE( "Basic matrix3<T> tests", "[vector3<T>]" ) {
 
   SECTION("Testing sigma matrices") {
 
-    m3f s_m_u = m3f::unity;
+    m3f s_m_u = m3f::unity();
 
     m3f s_m_y = {
       { 1,  0,  0},

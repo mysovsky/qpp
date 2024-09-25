@@ -159,60 +159,61 @@ void py_eigen3_export (py::module m) {
 }
 
 
-template<class REAL, bool BOUND>
+template<class REAL>
 void py_rotrans_export (py::module m, const char * pyname) {
-  if (BOUND)
-    py::class_<qpp::rotrans<REAL,BOUND> >(m, pyname)
-        //.def()
-        .def(py::init<const qpp::rotrans<REAL,BOUND> >())
-        .def(py::init<const qpp::vector3<REAL>,
-             qpp::periodic_cell<REAL>* >())
-        .def(py::init<const qpp::matrix3<REAL>,
-             qpp::periodic_cell<REAL>*  >())
-        .def(py::init<const qpp::vector3<REAL>,
-             const qpp::matrix3<REAL>, qpp::periodic_cell<REAL>* >())
-        .def("__mul__", &qpp::rotrans<REAL,BOUND>::py_mulr)
-        .def("__mul__", &qpp::rotrans<REAL,BOUND>::py_mulv)
-        //   .def(sn::str(sn::self))
-        //   .def(sn::repr(sn::self))
-        .def(py::self==py::self)
-        .def(py::self!=py::self)
-        //        .def_readwrite_static("unity",
-        //                              & qpp::rotrans<REAL,BOUND>::unity)
-        .def_readwrite("T", &qpp::rotrans<REAL,BOUND>::T)
-        .def_readwrite("R", &qpp::rotrans<REAL,BOUND>::R)
-        .def_readwrite_static("tol_trans",
-                              &qpp::rotrans<REAL,BOUND>::tol_trans)
-        .def_readwrite_static("tol_rot",
-                              &qpp::rotrans<REAL,BOUND>::tol_rot)
-        .def_readwrite("cell", &qpp::rotrans<REAL,BOUND>::cell,
-                       py::return_value_policy::reference_internal)
-        //return_value_policy<reference_existing_object>()))
-        ;
+  py::class_<qpp::rotrans<REAL> >(m, pyname)
+    .def(py::init<>())
+    //    .def(py::init<const qpp::rotrans<REAL> &>())
+    //.def(py::init<const qpp::vector3<REAL>&,
+    //	 std::shared_ptr<qpp::periodic_cell<REAL> >())
+    //    .def(py::init<const qpp::matrix3<REAL>&,
+    //	 std::shared_ptr<qpp::periodic_cell<REAL> >())
+    //.def(py::init<const qpp::vector3<REAL>>&,
+    //	 const qpp::matrix3<REAL>&, std::shared_ptr<qpp::periodic_cell<REAL> >())
+    .def("__mul__", &qpp::rotrans<REAL>::py_mulr)
+    .def("__mul__", &qpp::rotrans<REAL>::py_mulv)
+    //   .def(sn::str(sn::self))
+    //   .def(sn::repr(sn::self))
+    .def(py::self==py::self)
+    .def(py::self!=py::self)
+    //        .def_readwrite_static("unity",
+    //                              & qpp::rotrans<REAL>::unity)
+    .def_readwrite("T", &qpp::rotrans<REAL>::T)
+    .def_readwrite("R", &qpp::rotrans<REAL>::R)
+    //        .def_readwrite_static("tol_trans",
+    //                      &qpp::rotrans<REAL>::tol_transl)
+    // .def_readwrite_static("tol_rot",
+    //                       &qpp::rotrans<REAL>::tol_rot)
+    .def_readwrite("cell", &qpp::rotrans<REAL>::cell,
+		   py::return_value_policy::reference_internal)
+    //return_value_policy<reference_existing_object>()))
+    ;
+  /*
   else
-    py::class_<qpp::rotrans<REAL,BOUND> >(m, pyname)
+    py::class_<qpp::rotrans<REAL> >(m, pyname)
         //    .def()
-        .def(py::init<const qpp::rotrans<REAL,BOUND> >())
+        .def(py::init<const qpp::rotrans<REAL> >())
         .def(py::init<const qpp::vector3<REAL> >())
         .def(py::init<const qpp::matrix3<REAL> >())
         .def(py::init<const qpp::vector3<REAL>,
              const qpp::matrix3<REAL> >())
-        .def("__mul__", &qpp::rotrans<REAL,BOUND>::py_mulr)
-        .def("__mul__", &qpp::rotrans<REAL,BOUND>::py_mulv)
+        .def("__mul__", &qpp::rotrans<REAL>::py_mulr)
+        .def("__mul__", &qpp::rotrans<REAL>::py_mulv)
         //.def(sn::str(sn::self))
         //.def(sn::repr(sn::self))
         .def(py::self==py::self)
         .def(py::self!=py::self)
-        .def("__ne__", &qpp::rotrans<REAL,BOUND>::operator!=)
-        .def_readwrite_static("unity", &qpp::rotrans<REAL,BOUND>::unity)
-        .def_readwrite("T", &qpp::rotrans<REAL,BOUND>::T)
-        .def_readwrite("R", &qpp::rotrans<REAL,BOUND>::R)
+        .def("__ne__", &qpp::rotrans<REAL>::operator!=)
+        .def_readwrite_static("unity", &qpp::rotrans<REAL>::unity)
+        .def_readwrite("T", &qpp::rotrans<REAL>::T)
+        .def_readwrite("R", &qpp::rotrans<REAL>::R)
         .def_readwrite_static("tol_trans",
-                              &qpp::rotrans<REAL,BOUND>::tol_trans)
+                              &qpp::rotrans<REAL>::tol_trans)
         .def_readwrite_static("tol_rot",
-                              &qpp::rotrans<REAL,BOUND>::tol_rot);
+                              &qpp::rotrans<REAL>::tol_rot);
   //  m.def("invert", qpp::py_invert_rt<REAL,BOUND>);
   //  m.def("pow",   qpp::py_pow_rt<REAL,BOUND>);
+  */
 }
 
 void pyqpp_linalg_export (py::module m) {
@@ -223,8 +224,8 @@ void pyqpp_linalg_export (py::module m) {
 #endif
   py_matrix3_export<float>(m, "matrix3f");
   py_eigen3_export<float>(m);
-  py_rotrans_export<float,false>(m, "rotrans_f");
-  py_rotrans_export<float,true>(m, "bound_rotrans_f");
+  py_rotrans_export<float>(m, "rotrans_f");
+  //  py_rotrans_export<float,true>(m, "bound_rotrans_f");
 
 #ifdef PYTHON_EXP_EXT
   py_vector3_export<double>(m, "vector3d");
@@ -236,8 +237,8 @@ void pyqpp_linalg_export (py::module m) {
   py_matrix3_export<std::complex<double> >(m, "matrix3z");
 
   py_eigen3_export<double>(m);
-  py_rotrans_export<double,false>(m, "rotrans_d");
-  py_rotrans_export<double,true>(m, "bound_rotrans_d");
+  py_rotrans_export<double>(m, "rotrans_d");
+  //  py_rotrans_export<double,true>(m, "bound_rotrans_d");
 #endif
 
   qpp::index::py_export( m, "index");

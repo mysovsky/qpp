@@ -17,6 +17,6 @@ int main () {
   read_xyzq(uc_io, uc);
   std::cout << uc.cell.v[0].to_string_vec()
       << uc.cell.v[1].to_string_vec() << uc.cell.v[2].to_string_vec() << std::endl;
-  array_group<rotrans<double,true> > cg;
+  array_group<rotrans<double> > cg;
   find_cryst_symm<double>(cg, uc, 0.0001);
 }

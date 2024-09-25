@@ -32,8 +32,8 @@ namespace qpp{
     return subspace3(x);
   }
 
-  template<class REAL, bool BOUND>
-  subspace3<REAL> invariant_subspace(const rotrans<REAL,BOUND> & R)
+  template<class REAL>
+  subspace3<REAL> invariant_subspace(const rotrans<REAL> & R)
   {
     return invariant_subspace(rotrans4d(R));
   }

@@ -33,18 +33,18 @@ void pyqpp_molecule_export (pybind11::module m) {
   py_molecule_export<float, qpp::gen_cell<float,
       qpp::matrix3<float> > >(m, "molecule_pgf");
   py_molecule_export<float, qpp::gen_cell<float,
-      qpp::rotrans<float, false> > >(m, "molecule_cgf");
+      qpp::rotrans<float> > >(m, "molecule_cgf");
   py_molecule_export<float, qpp::gen_cell<float,
-      qpp::rotrans<float, true> > >(m, "molecule_fcgf");
+      qpp::rotrans<float> > >(m, "molecule_fcgf");
 
 #ifdef PYTHON_EXP_EXT
   py_molecule_export<double, qpp::periodic_cell<double> >(m, "molecule_d");
   py_molecule_export<double, qpp::gen_cell<double,
       qpp::matrix3<double> > >(m, "molecule_pgd");
   py_molecule_export<double, qpp::gen_cell<double,
-      qpp::rotrans<double, false> > >(m, "molecule_cgd");
+      qpp::rotrans<double> > >(m, "molecule_cgd");
   py_molecule_export<double, qpp::gen_cell<double,
-      qpp::rotrans<double, true> > >(m, "molecule_fcgd");
+      qpp::rotrans<double> > >(m, "molecule_fcgd");
 #endif
 
 }
